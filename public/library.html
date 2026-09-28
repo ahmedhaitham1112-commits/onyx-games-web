@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09070f">
+    <title>Game Library | Onyx Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/onyx%20logo.png">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Onyx Games home"><img class="mark" src="/onyx%20logo.png" alt=""> ONYX<span class="wordmark-light">GAMES</span></a>
+      <nav aria-label="Main navigation">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link current" href="/library.html">Library <span class="nav-arrow" aria-hidden="true">↗</span></a>
+      </nav>
+      <div class="account-area" data-account></div>
+    </header>
+
+    <main class="library-main">
+      <section class="library-intro">
+        <div><p class="eyebrow"><span class="status-dot"></span> THE ONYX COLLECTION</p><h1>Game<br><span>library.</span></h1></div>
+        <p class="library-description">A growing collection of small, singular ideas. Choose a game and make it yours.</p>
+      </section>
+      <section class="library-list" aria-label="Available games">
+        <div class="library-list-head"><span>AVAILABLE NOW</span><span data-game-count>— TITLES</span></div>
+        <div data-games class="game-grid"><div class="loading-line">Loading games<span class="loading-dots">...</span></div></div>
+      </section>
+      <section class="library-signin">
+        <div><p class="eyebrow">YOUR SCORES, YOURS TO KEEP</p><h2>Pick up where you left off.</h2></div>
+        <div class="signin-action"><span data-library-note>Sign in to keep your scores together.</span><button class="button button-dark google-sign-in" type="button" data-sign-in><span class="google-g" aria-hidden="true">G</span> Sign in with Google</button></div>
+      </section>
+      <section class="game-login-code library-game-code" data-game-code aria-labelledby="game-code-heading" hidden>
+        <div><p class="eyebrow">DESKTOP GAME</p><h2 id="game-code-heading">Game Login Code</h2></div>
+        <code data-game-code-value></code>
+        <button class="copy-code" type="button" data-copy-game-code aria-label="Copy game login code">Copy</button>
+        <p class="code-expiry">One-time code · expires in 5 minutes</p>
+      </section>
+    </main>
+    <footer class="site-footer"><a class="wordmark footer-mark" href="/">ONYX<span class="wordmark-light">GAMES</span></a><span>Made for the curious.</span><span class="footer-year">© <span data-year></span> ONYX GAMES</span></footer>
+    <div class="toast" role="status" aria-live="polite" data-toast></div>
+  </body>
+</html>

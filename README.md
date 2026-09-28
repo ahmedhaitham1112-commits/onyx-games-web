@@ -1,0 +1,49 @@
+# Onyx Games
+
+An Express website and API backed by Supabase Auth and Postgres. The browser uses the Supabase anon key for Google and email/password sign-in; Supabase Auth securely stores password hashes, and the server uses the service-role key for verified profile and score writes.
+
+## Run locally
+
+1. Install Node.js 20 or newer.
+2. Create a Supabase project and follow [Google OAuth setup](#google-oauth-setup). Enable email sign-ups in Supabase Authentication settings if they are disabled.
+3. In the Supabase SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql). Re-run it on existing projects to apply the username migration and Auth profile trigger.
+4. Copy `.env.example` to `.env` and fill in the project URL, anon key, and service-role key from Supabase Project Settings → API. In PowerShell, use `Copy-Item .env.example .env`.
+5. From the project folder, install and start the app:
+
+   ```powershell
+   npm.cmd install
+   npm.cmd run dev
+   ```
+
+6. Open <http://localhost:3000>. Use `npm.cmd start` for a normal (non-watch) start.
+
+The game appears in the library after the schema is applied. Its download actions remain marked “Soon” until real builds are available. Set their URLs in Supabase:
+
+```sql
+update public.games
+set download_url_pc = 'https://your-host/your-windows-build.zip',
+    download_url_android = 'https://your-host/your-android-build.apk'
+where slug = 'stare-at-a-guy-simulator';
+```
+
+## Google OAuth setup
+
+1. In Google Cloud Console, create or select a project, configure the OAuth consent screen, and create an OAuth client ID of type **Web application**.
+2. In Supabase Dashboard → Authentication → Providers → Google, enable Google and paste the Google client ID and client secret.
+3. In that provider page, copy the Supabase callback URL (typically `https://<project-ref>.supabase.co/auth/v1/callback`) into the Google OAuth client's **Authorized redirect URIs**. Google will reject the provider setup if this callback does not match exactly.
+4. In Supabase Dashboard → Authentication → URL Configuration, add `http://localhost:3000` to the allowed redirect URLs. The website redirects Google sign-in back to this origin.
+5. In Supabase Project Settings → API, copy the Project URL and anon/public key into `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Copy the service-role key into `SUPABASE_SERVICE_ROLE_KEY`. Keep the service-role key private and never put it in browser code or commit `.env`.
+
+## Deploy on Render
+
+The included [`render.yaml`](render.yaml) defines a Render web service using its free plan where available. Push this project to a Git repository, create a new Blueprint in Render from that repository, and enter the three Supabase environment values when prompted. After deployment, set the generated HTTPS URL as Supabase's Site URL and add it to the allowed redirect URLs. The Google OAuth client's authorized redirect URI remains the Supabase callback URL. Free-tier availability, limits, and sleep behavior are controlled by Render and can change.
+
+## API
+
+- `GET /api/games` returns the game catalog and download URLs.
+- `POST /api/login` accepts `{ "access_token": "<Supabase access token>" }`. It verifies the token, upserts the local profile, and returns `{ "session_token": "...", "user": { ... } }`. The session token is the Supabase access token; the game client should treat it as a bearer secret and send it as `session_token` to score submission.
+- `GET /api/users/username-available?username=<username>` checks whether a username is available for signup.
+- `GET /api/session/code` requires `Authorization: Bearer <Supabase access token>` and returns an eight-character, one-time code that expires after five minutes. The website displays this code after Google sign-in.
+- `POST /api/session/redeem` accepts `{ "code": "..." }` and returns `{ "session_token": "<Supabase access token>" }`. Redemption consumes the code; the game should keep the returned token secret and use it for authenticated API requests.
+- `POST /api/scores/submit` accepts `{ "session_token": "...", "game_slug": "stare-at-a-guy-simulator", "score": 123 }`. The supplied score replaces the user's current total for that game.
+- `GET /api/scores/leaderboard?game=stare-at-a-guy-simulator` returns the top 10 `{ "username", "score" }` entries in descending score order.
