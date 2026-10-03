@@ -78,7 +78,12 @@ app.get("/api/users/username-available", async (req, res) => {
     .ilike("username", username)
     .maybeSingle();
   if (error) {
-    console.error("Could not check username availability:", error.message);
+    console.error("Could not check username availability:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     if (error.code === "42703") {
       return res.status(503).json({ error: "Email signup is unavailable until the username migration in supabase/schema.sql has been applied." });
     }
