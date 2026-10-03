@@ -85,6 +85,7 @@ h1, h2, p { margin-top: 0; }
 .hero-art { position: relative; min-height: 348px; overflow: hidden; display: grid; place-items: center; background: var(--acid); }
 .hero-art::before { position: absolute; inset: 0; content: ""; background-image: radial-gradient(#17201724 0.65px, transparent 0.65px); background-size: 8px 8px; opacity: .45; }
 .impact-animation { position: absolute; z-index: 1; inset: 0; overflow: hidden; isolation: isolate; pointer-events: none; }
+.intro-scene { position: absolute; z-index: 1; bottom: 0; left: 50%; width: min(calc(100% + 2px), 550px); aspect-ratio: 550 / 348; overflow: hidden; transform: translateX(-50%); }
 .intro-canvas { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; display: block; }
 .intro-title { position: absolute; z-index: 2; top: 50%; left: 50%; max-width: 92%; color: #f2e8ff; opacity: 0; transform: translate(-50%, -50%); white-space: nowrap; font-size: 31px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 0 10px #cda4ffb8, 0 0 28px #9f63df80; }
 .art-index, .art-coordinate { position: absolute; z-index: 2; color: #32382c; }
@@ -282,7 +283,7 @@ img, picture, canvas, video { max-width: 100%; }
     padding: 38px max(20px, env(safe-area-inset-right)) 42px max(20px, env(safe-area-inset-left));
   }
   .hero h1 { font-size: clamp(3.25rem, 9vw, 4.5rem); }
-  .hero-art { width: 100%; min-height: 0; height: clamp(240px, 48vw, 340px); }
+  .hero-art { width: 100%; min-height: 0; height: clamp(240px, 48vw, 348px); }
   .intro-title {
     width: calc(100% - 24px);
     max-width: calc(100% - 24px);

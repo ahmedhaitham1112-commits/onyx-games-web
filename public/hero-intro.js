@@ -7,9 +7,10 @@ const randomBetween = (minimum, maximum) => minimum + Math.random() * (maximum -
 
 export function initializeHeroIntro() {
   const stage = document.querySelector(".hero-art");
+  const scene = stage?.querySelector(".intro-scene");
   const canvas = stage?.querySelector("[data-hero-canvas]");
   const title = stage?.querySelector("[data-hero-title]");
-  if (!stage || !canvas || !title) return;
+  if (!stage || !scene || !canvas || !title) return;
 
   const context = canvas.getContext("2d", { alpha: true });
   if (!context) return;
@@ -28,24 +29,30 @@ export function initializeHeroIntro() {
   let chips = [];
   let particles = [];
 
+  function getSceneScale() {
+    return Math.min(1, width / 550, height / 348);
+  }
+
   function getStone() {
-    const scale = Math.min(1, width / 460, height / 300);
+    const scale = getSceneScale();
     const stoneWidth = 88 * scale;
     const stoneHeight = 100 * scale;
     const ground = height * 0.835;
-    const stoneX = width < 768 ? (width - stoneWidth) / 2 : width * 0.035;
+    const stoneX = window.innerWidth <= 768 ? (width - stoneWidth) / 2 : width * 0.035;
     return {
       x: stoneX,
       y: ground,
       width: stoneWidth,
       height: stoneHeight,
+      crackX: stoneX + stoneWidth * 0.49,
+      crackY: ground - stoneHeight * 0.51,
       impactX: stoneX + stoneWidth * 0.96,
       impactY: ground - stoneHeight * 0.61,
     };
   }
 
   function resizeScene() {
-    const bounds = stage.getBoundingClientRect();
+    const bounds = scene.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return;
     width = bounds.width;
     height = bounds.height;
@@ -60,11 +67,11 @@ export function initializeHeroIntro() {
     impacted = false;
     createParticles();
     drawScene(motionPreference.matches ? ambientStart : elapsed, 0);
-    if (stage.getClientRects().length) startLoop();
+    if (scene.getClientRects().length) startLoop();
   }
 
   function createParticles() {
-    const scale = Math.min(1, width / 460, height / 300);
+    const scale = getSceneScale();
     const count = Math.max(8, Math.round(20 * scale));
     particles = Array.from({ length: count }, (_, index) => {
       const size = randomBetween(3, 6.5) * scale;
@@ -85,7 +92,7 @@ export function initializeHeroIntro() {
   }
 
   function flightState(time, stone) {
-    const swordLength = Math.min(116, height * 0.34);
+    const swordLength = 116 * getSceneScale();
     const duration = flightDuration;
     const gravity = height * 0.78;
     const startX = width + swordLength * 0.62;
@@ -111,6 +118,7 @@ export function initializeHeroIntro() {
 
   function drawStone(stone, showChip) {
     const { x, y, width: stoneWidth, height: stoneHeight } = stone;
+    const scale = getSceneScale();
     const topX = x + stoneWidth * 0.48;
     const points = [
       [topX, y - stoneHeight],
@@ -125,7 +133,7 @@ export function initializeHeroIntro() {
     context.save();
     context.fillStyle = "#050409";
     context.shadowColor = "#050409";
-    context.shadowBlur = 18;
+    context.shadowBlur = 18 * scale;
     context.beginPath();
     context.ellipse(x + stoneWidth * 0.48, y + 3, stoneWidth * 0.72, stoneHeight * 0.12, 0, 0, Math.PI * 2);
     context.fill();
@@ -145,7 +153,7 @@ export function initializeHeroIntro() {
     context.fillStyle = stoneGradient;
     context.fill();
     context.strokeStyle = "#d5b5ff99";
-    context.lineWidth = 1;
+    context.lineWidth = scale;
     context.stroke();
 
     context.beginPath();
@@ -166,24 +174,24 @@ export function initializeHeroIntro() {
 
     if (showChip) {
       context.beginPath();
-      context.moveTo(stone.impactX - stoneWidth * 0.03, stone.impactY - stoneHeight * 0.08);
-      context.lineTo(x + stoneWidth * 0.71, y - stoneHeight * 0.56);
-      context.lineTo(x + stoneWidth * 0.64, y - stoneHeight * 0.45);
-      context.lineTo(x + stoneWidth * 0.49, y - stoneHeight * 0.51);
-      context.lineTo(x + stoneWidth * 0.34, y - stoneHeight * 0.37);
-      context.lineTo(x + stoneWidth * 0.2, y - stoneHeight * 0.42);
-      context.moveTo(x + stoneWidth * 0.64, y - stoneHeight * 0.45);
-      context.lineTo(x + stoneWidth * 0.59, y - stoneHeight * 0.29);
-      context.lineTo(x + stoneWidth * 0.47, y - stoneHeight * 0.2);
-      context.moveTo(x + stoneWidth * 0.49, y - stoneHeight * 0.51);
-      context.lineTo(x + stoneWidth * 0.45, y - stoneHeight * 0.67);
-      context.lineTo(x + stoneWidth * 0.34, y - stoneHeight * 0.74);
+      context.moveTo(stone.crackX + stoneWidth * 0.44, stone.crackY - stoneHeight * 0.18);
+      context.lineTo(stone.crackX + stoneWidth * 0.22, stone.crackY - stoneHeight * 0.05);
+      context.lineTo(stone.crackX + stoneWidth * 0.15, stone.crackY + stoneHeight * 0.06);
+      context.lineTo(stone.crackX, stone.crackY);
+      context.lineTo(stone.crackX - stoneWidth * 0.15, stone.crackY + stoneHeight * 0.14);
+      context.lineTo(stone.crackX - stoneWidth * 0.29, stone.crackY + stoneHeight * 0.09);
+      context.moveTo(stone.crackX, stone.crackY);
+      context.lineTo(stone.crackX + stoneWidth * 0.15, stone.crackY + stoneHeight * 0.06);
+      context.lineTo(stone.crackX + stoneWidth * 0.1, stone.crackY + stoneHeight * 0.22);
+      context.moveTo(stone.crackX, stone.crackY);
+      context.lineTo(stone.crackX - stoneWidth * 0.04, stone.crackY - stoneHeight * 0.16);
+      context.lineTo(stone.crackX - stoneWidth * 0.15, stone.crackY - stoneHeight * 0.23);
       context.lineJoin = "round";
       context.strokeStyle = "#080611";
-      context.lineWidth = 4;
+      context.lineWidth = 4 * scale;
       context.stroke();
       context.strokeStyle = "#e6d4ff";
-      context.lineWidth = 1.5;
+      context.lineWidth = 1.5 * scale;
       context.stroke();
     }
     context.restore();
@@ -251,9 +259,9 @@ export function initializeHeroIntro() {
   }
 
   function createImpactChips(stone) {
-    impactPoint = { x: stone.impactX, y: stone.impactY };
+    impactPoint = { x: stone.crackX, y: stone.crackY };
     const flight = flightState(flightDuration, stone);
-    const scale = Math.min(1, width / 460, height / 300);
+    const scale = getSceneScale();
     const speed = Math.hypot(flight.velocityX, flight.velocityY) || 1;
     impactDirection = { x: flight.velocityX / speed, y: flight.velocityY / speed };
     chips = Array.from({ length: 8 }, () => {
@@ -273,7 +281,7 @@ export function initializeHeroIntro() {
 
   function updateAndDrawParticles(deltaTime, time) {
     if (time < ambientStart) return;
-    const scale = Math.min(1, width / 460, height / 300);
+    const scale = getSceneScale();
     particles.forEach((particle) => {
       if (time < particle.activation) return;
       particle.velocityY += particle.gravity * deltaTime;
@@ -326,9 +334,9 @@ export function initializeHeroIntro() {
     drawStone(stone, hasImpacted);
     const flight = flightState(time, stone);
     if (hasImpacted) {
-      const embedDepth = flight.length * 0.325;
-      const tipX = stone.impactX + impactDirection.x * embedDepth;
-      const tipY = stone.impactY + impactDirection.y * embedDepth;
+      const bladeTipOffset = flight.length * 0.01;
+      const tipX = stone.crackX - impactDirection.x * bladeTipOffset;
+      const tipY = stone.crackY - impactDirection.y * bladeTipOffset;
       drawSword(tipX, tipY, impactDirection.x, impactDirection.y, flight.length);
     } else {
       drawSword(flight.tipX, flight.tipY, flight.velocityX, flight.velocityY, flight.length, 1, flight.rotationOffset);
@@ -337,7 +345,7 @@ export function initializeHeroIntro() {
     const impactAge = Math.max(0, time - flightDuration);
     chips.forEach((chip) => {
       if (impactAge > 0.72) return;
-      chip.velocityY += 190 * Math.min(1, width / 460, height / 300) * deltaTime;
+      chip.velocityY += 190 * getSceneScale() * deltaTime;
       chip.x += chip.velocityX * deltaTime;
       chip.y += chip.velocityY * deltaTime;
       chip.rotation += chip.rotationSpeed * deltaTime;
@@ -386,7 +394,7 @@ export function initializeHeroIntro() {
   intersectionObserver.observe(stage);
 
   const resizeObserver = new ResizeObserver(resizeScene);
-  resizeObserver.observe(stage);
+  resizeObserver.observe(scene);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") stopLoop();
     else startLoop();
