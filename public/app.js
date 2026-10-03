@@ -73,8 +73,40 @@ async function initializeAuth() {
   const signupFields = document.querySelector("[data-signup-fields]");
   const authHeading = document.querySelector("[data-auth-heading]");
   const authSubmit = document.querySelector("[data-auth-submit]");
+  const authSubmitLabel = document.querySelector("[data-auth-submit-label]");
   const authToggle = document.querySelector("[data-auth-toggle]");
+  const authMessage = document.querySelector("[data-auth-message]");
+  const passwordInput = emailAuthForm?.elements.password;
+  const passwordToggle = document.querySelector("[data-password-toggle]");
+  let authPending = false;
   let authMode = "login";
+
+  function setAuthMessage(message, isError = false) {
+    if (!authMessage) return;
+    authMessage.textContent = message;
+    authMessage.hidden = !message;
+    authMessage.classList.toggle("is-error", isError);
+  }
+
+  function setAuthPending(pending) {
+    authPending = pending;
+    if (authSubmit) {
+      authSubmit.disabled = pending;
+      authSubmit.setAttribute("aria-busy", String(pending));
+      authSubmit.classList.toggle("is-loading", pending);
+    }
+    if (authToggle) authToggle.disabled = pending;
+  }
+
+  function getSignupUsername(formData) {
+    if (authMode !== "signup") return "";
+    const username = String(formData.get("username") || "").trim();
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) {
+      setAuthMessage("Username must be 3-20 characters using letters, numbers, or underscores.", true);
+      return null;
+    }
+    return username.toLowerCase();
+  }
 
   function setAuthMode(mode) {
     authMode = mode;
@@ -83,11 +115,20 @@ async function initializeAuth() {
     signupFields.querySelectorAll("input").forEach((input) => { input.required = isSignup; });
     emailAuthForm.elements.password.autocomplete = isSignup ? "new-password" : "current-password";
     authHeading.textContent = isSignup ? "Create your account" : "Log in with email";
-    authSubmit.textContent = isSignup ? "Create account" : "Log in";
+    authSubmitLabel.textContent = isSignup ? "Create account" : "Log in";
     authToggle.textContent = isSignup ? "Already have an account? Log in" : "Create an account";
+    setAuthMessage("");
   }
 
   authToggle?.addEventListener("click", () => setAuthMode(authMode === "login" ? "signup" : "login"));
+  passwordToggle?.addEventListener("click", () => {
+    const isVisible = passwordInput.type === "text";
+    passwordInput.type = isVisible ? "password" : "text";
+    passwordToggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    passwordToggle.setAttribute("aria-pressed", String(!isVisible));
+    passwordToggle.querySelector("[data-password-eye]").hidden = !isVisible;
+    passwordToggle.querySelector("[data-password-eye-off]").hidden = isVisible;
+  });
   const configResponse = await fetch("/api/config");
   const config = await configResponse.json();
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
@@ -96,7 +137,8 @@ async function initializeAuth() {
     });
     emailAuthForm?.addEventListener("submit", (event) => {
       event.preventDefault();
-      toastMessage("Add your Supabase URL and anon key to .env to enable sign-in.");
+      if (getSignupUsername(new FormData(emailAuthForm)) === null) return;
+      setAuthMessage("Add your Supabase URL and anon key to .env to enable sign-in.", true);
     });
     if (!authPanel) window.location.replace("/");
     return;
@@ -105,22 +147,34 @@ async function initializeAuth() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   document.querySelectorAll("[data-sign-in]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) toastMessage(error.message);
+      button.disabled = true;
+      button.classList.add("is-loading");
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) throw error;
+      } catch (error) {
+        button.disabled = false;
+        button.classList.remove("is-loading");
+        toastMessage(error.message || "Could not start Google sign-in.");
+      }
     });
   });
 
   emailAuthForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (authPending) return;
+    setAuthMessage("");
     const formData = new FormData(emailAuthForm);
     const email = String(formData.get("email")).trim();
     const password = String(formData.get("password"));
+    const username = getSignupUsername(formData);
+    if (authMode === "signup" && username === null) return;
+    setAuthPending(true);
     try {
       if (authMode === "signup") {
-        const username = String(formData.get("username")).trim().toLowerCase();
         const displayName = String(formData.get("display_name")).trim();
         const availabilityResponse = await fetch(`/api/users/username-available?username=${encodeURIComponent(username)}`);
         const availability = await availabilityResponse.json();
@@ -144,14 +198,22 @@ async function initializeAuth() {
           throw error;
         }
         if (data.session) await syncSession(data.session);
-        else toastMessage("Check your email to confirm your account, then log in.");
+        else setAuthMessage("Account created. Check your email to confirm it before logging in. If it does not arrive, the project owner needs to configure an email sender.");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error?.code === "invalid_credentials" || /invalid login credentials/i.test(error?.message || "")) {
+          throw new Error("Incorrect email or password.");
+        }
+        if (error?.code === "email_not_confirmed") {
+          throw new Error("Please confirm your email before logging in. Check your inbox and spam folder.");
+        }
         if (error) throw error;
         if (data.session) await syncSession(data.session);
       }
     } catch (error) {
-      toastMessage(error.message || "Could not authenticate.");
+      setAuthMessage(error.message || "Could not authenticate.", true);
+    } finally {
+      setAuthPending(false);
     }
   });
 

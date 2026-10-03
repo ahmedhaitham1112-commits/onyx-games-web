@@ -32,17 +32,18 @@
             <a class="button button-dark" href="/library.html">Explore the library <span aria-hidden="true">↗</span></a>
           </div>
           <section class="auth-panel" data-auth-panel aria-label="Sign in or create an account">
-            <button class="button button-light google-sign-in" type="button" data-sign-in><span class="google-g" aria-hidden="true">G</span> Sign in with Google</button>
+            <button class="button button-light google-sign-in" type="button" data-sign-in><span class="google-g" aria-hidden="true">G</span><span data-google-label>Sign in with Google</span><span class="auth-spinner" aria-hidden="true"></span></button>
             <div class="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
-            <form class="email-auth-form" data-email-auth>
+            <form class="email-auth-form" data-email-auth novalidate>
               <h2 id="auth-heading" data-auth-heading>Log in with email</h2>
               <div class="signup-fields" data-signup-fields hidden>
-                <label>Username<input name="username" type="text" minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" autocomplete="username" required></label>
+                <label>Username<input name="username" type="text" minlength="3" maxlength="20" autocomplete="username" required></label>
                 <label>Display name<input name="display_name" type="text" maxlength="80" autocomplete="name" required></label>
               </div>
               <label>Email<input name="email" type="email" autocomplete="email" required></label>
-              <label>Password<input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
-              <button class="button button-dark email-submit" type="submit" data-auth-submit>Log in</button>
+              <label>Password<span class="password-control"><input name="password" type="password" minlength="8" autocomplete="current-password" required><button class="password-visibility" type="button" data-password-toggle aria-label="Show password" aria-pressed="false"><svg data-password-eye aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg data-password-eye-off aria-hidden="true" viewBox="0 0 24 24" hidden><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15.8 15.8 0 0 1-3.2 4.1M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.7 10.7 0 0 0 4.1-.8"></path></svg></button></span></label>
+              <p class="auth-feedback" data-auth-message role="status" aria-live="polite" hidden></p>
+              <button class="button button-dark email-submit" type="submit" data-auth-submit><span data-auth-submit-label>Log in</span><span class="auth-spinner" aria-hidden="true"></span></button>
               <button class="auth-mode-toggle" type="button" data-auth-toggle>Create an account</button>
             </form>
           </section>

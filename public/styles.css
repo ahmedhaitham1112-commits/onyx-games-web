@@ -58,9 +58,22 @@ h1, h2, p { margin-top: 0; }
 .email-auth-form label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
 .email-auth-form input { width: 100%; min-height: 37px; padding: 0 10px; border: 1px solid var(--line); border-radius: 2px; outline: none; background: var(--paper); color: var(--ink); font: 12px var(--sans); }
 .email-auth-form input:focus { border-color: var(--coral); }
+.password-control { position: relative; display: block; }
+.password-control input { padding-right: 42px; }
+.password-visibility { position: absolute; top: 0; right: 0; width: 40px; height: 37px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.password-visibility:hover, .password-visibility:focus-visible { color: var(--ink); }
+.password-visibility svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+.auth-feedback { margin: 0; color: #f0c98b; font-size: 11px; line-height: 1.5; }
+.auth-feedback.is-error { color: #ff9b9b; }
 .email-submit { width: 100%; min-height: 39px; }
+.email-submit:disabled, .google-sign-in:disabled { cursor: wait; opacity: .8; }
+.auth-spinner { width: 13px; height: 13px; display: none; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: auth-spin 650ms linear infinite; }
+.is-loading .auth-spinner { display: inline-block; }
+.is-loading [data-google-label] { opacity: .75; }
+.email-auth-form .signup-fields:not([hidden]) { animation: auth-fields-in 180ms ease both; }
 .auth-mode-toggle { justify-self: center; padding: 2px 4px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 10px; }
 .auth-mode-toggle:hover { color: var(--ink); }
+.auth-mode-toggle:disabled { cursor: wait; }
 .game-login-code { width: min(100%, 370px); margin-top: 20px; padding: 16px 0 0; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px 12px; border-top: 1px solid var(--line); }
 .game-login-code h2 { margin: 5px 0 0; font-size: 15px; font-weight: 500; }
 .game-login-code code { color: var(--ink); font: 500 20px var(--mono); letter-spacing: 2px; }
@@ -118,6 +131,8 @@ h1, h2, p { margin-top: 0; }
 .toast { position: fixed; z-index: 5; right: 24px; bottom: 22px; max-width: min(390px, calc(100vw - 40px)); padding: 13px 16px; border: 1px solid var(--line); background: var(--ink); color: white; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity 180ms ease, transform 180ms ease; font-size: 12px; }
 .toast.visible { opacity: 1; transform: translateY(0); }
 @keyframes blink { to { visibility: hidden; } }
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+@keyframes auth-fields-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 760px) {
   .site-header { height: 66px; padding: 0 5%; grid-template-columns: 1fr auto; }
