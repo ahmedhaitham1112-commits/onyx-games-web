@@ -33,12 +33,13 @@ export function initializeHeroIntro() {
     const stoneWidth = 88 * scale;
     const stoneHeight = 100 * scale;
     const ground = height * 0.835;
+    const stoneX = width < 768 ? (width - stoneWidth) / 2 : width * 0.035;
     return {
-      x: width * 0.035,
+      x: stoneX,
       y: ground,
       width: stoneWidth,
       height: stoneHeight,
-      impactX: width * 0.035 + stoneWidth * 0.96,
+      impactX: stoneX + stoneWidth * 0.96,
       impactY: ground - stoneHeight * 0.61,
     };
   }
@@ -52,25 +53,32 @@ export function initializeHeroIntro() {
     canvas.width = Math.round(width * pixelRatio);
     canvas.height = Math.round(height * pixelRatio);
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    if (particles.length === 0) createParticles();
+    particles = [];
+    chips = [];
+    impactPoint = null;
+    impactDirection = null;
+    impacted = false;
+    createParticles();
     drawScene(motionPreference.matches ? ambientStart : elapsed, 0);
     if (stage.getClientRects().length) startLoop();
   }
 
   function createParticles() {
-    particles = Array.from({ length: 20 }, (_, index) => {
-      const size = randomBetween(3, 6.5);
+    const scale = Math.min(1, width / 460, height / 300);
+    const count = Math.max(8, Math.round(20 * scale));
+    particles = Array.from({ length: count }, (_, index) => {
+      const size = randomBetween(3, 6.5) * scale;
       const x = randomBetween(width * 0.06, width * 0.94);
       return {
         x,
         y: -size - randomBetween(0, height * 0.8),
         startX: x,
         size,
-        velocityX: randomBetween(-9, 9),
-        velocityY: randomBetween(4, 18),
+        velocityX: randomBetween(-9, 9) * scale,
+        velocityY: randomBetween(4, 18) * scale,
         rotation: randomBetween(0, Math.PI * 2),
         rotationSpeed: randomBetween(-1.2, 1.2),
-        gravity: randomBetween(48, 72),
+        gravity: randomBetween(48, 72) * scale,
         activation: ambientStart + (index % 4) * 0.24,
       };
     });
@@ -245,17 +253,18 @@ export function initializeHeroIntro() {
   function createImpactChips(stone) {
     impactPoint = { x: stone.impactX, y: stone.impactY };
     const flight = flightState(flightDuration, stone);
+    const scale = Math.min(1, width / 460, height / 300);
     const speed = Math.hypot(flight.velocityX, flight.velocityY) || 1;
     impactDirection = { x: flight.velocityX / speed, y: flight.velocityY / speed };
     chips = Array.from({ length: 8 }, () => {
       const angle = randomBetween(-Math.PI * 0.82, Math.PI * 0.82);
-      const speedValue = randomBetween(28, 104);
+      const speedValue = randomBetween(28, 104) * scale;
       return {
         x: impactPoint.x,
         y: impactPoint.y,
         velocityX: Math.cos(angle) * speedValue,
-        velocityY: Math.sin(angle) * speedValue - randomBetween(12, 48),
-        size: randomBetween(2, 4.5),
+        velocityY: Math.sin(angle) * speedValue - randomBetween(12, 48) * scale,
+        size: randomBetween(2, 4.5) * scale,
         rotation: randomBetween(0, Math.PI * 2),
         rotationSpeed: randomBetween(-7, 7),
       };
@@ -264,6 +273,7 @@ export function initializeHeroIntro() {
 
   function updateAndDrawParticles(deltaTime, time) {
     if (time < ambientStart) return;
+    const scale = Math.min(1, width / 460, height / 300);
     particles.forEach((particle) => {
       if (time < particle.activation) return;
       particle.velocityY += particle.gravity * deltaTime;
@@ -274,8 +284,8 @@ export function initializeHeroIntro() {
       if (particle.y > height + particle.size * 2 || particle.x < -30 || particle.x > width + 30) {
         particle.x = particle.startX;
         particle.y = -particle.size - randomBetween(0, height * 0.22);
-        particle.velocityX = randomBetween(-9, 9);
-        particle.velocityY = randomBetween(4, 18);
+        particle.velocityX = randomBetween(-9, 9) * scale;
+        particle.velocityY = randomBetween(4, 18) * scale;
       }
       drawShard(particle.x, particle.y, particle.size, particle.rotation, 1);
     });
@@ -327,7 +337,7 @@ export function initializeHeroIntro() {
     const impactAge = Math.max(0, time - flightDuration);
     chips.forEach((chip) => {
       if (impactAge > 0.72) return;
-      chip.velocityY += 190 * deltaTime;
+      chip.velocityY += 190 * Math.min(1, width / 460, height / 300) * deltaTime;
       chip.x += chip.velocityX * deltaTime;
       chip.y += chip.velocityY * deltaTime;
       chip.rotation += chip.rotationSpeed * deltaTime;

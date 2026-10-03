@@ -214,10 +214,10 @@ body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f
   .intro-title { transition: none; }
 }
 
-.home-page.auth-required { min-height: 100vh; }
+.home-page.auth-required { min-height: 100vh; min-height: 100dvh; }
 .home-page.auth-required > .site-header,
 .home-page.auth-required > .site-footer { display: none; }
-.home-page.auth-required > main { min-height: 100vh; padding: 32px 20px; display: grid; place-items: center; }
+.home-page.auth-required > main { min-height: 100vh; min-height: 100dvh; padding: 32px 20px; display: grid; place-items: center; }
 .home-page.auth-required .hero { width: min(100%, 420px); min-height: 0; padding: 0; display: block; }
 .home-page.auth-required .hero-copy { padding: 0; animation: rise-in 450ms ease both; }
 .home-page.auth-required .hero-copy > :not(.auth-panel),
@@ -227,4 +227,133 @@ body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f
 
 @media (prefers-reduced-motion: reduce) {
   .hero-copy, .hero-art { animation: none; }
+}
+
+img, picture, canvas, video { max-width: 100%; }
+
+@media (max-width: 1024px) {
+  .site-header {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+    column-gap: clamp(12px, 2vw, 24px);
+    padding-inline: clamp(24px, 5vw, 56px);
+  }
+  .site-header nav { gap: clamp(14px, 2vw, 24px); }
+  .account-name { max-width: clamp(72px, 12vw, 135px); }
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: clamp(24px, 4vw, 44px); }
+  .featured-row, .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-library, .library-main { padding-inline: clamp(24px, 5vw, 56px); }
+  .site-header .wordmark, .site-header .sign-out, .nav-link, .footer-mark, .button, .email-submit,
+  .copy-code, .download-link, .download-unavailable, .password-visibility, .auth-mode-toggle, .text-link {
+    min-height: 44px;
+  }
+  .site-header .sign-out { display: inline-flex; align-items: center; }
+  .password-visibility { height: 44px; }
+  .email-auth-form input { min-height: 44px; }
+  .nav-link, .text-link { display: inline-flex; align-items: center; }
+}
+
+@media (max-width: 768px) {
+  html { background-attachment: scroll; }
+  body { min-height: 100vh; min-height: 100dvh; }
+  .site-header {
+    height: auto;
+    min-height: 64px;
+    padding: 8px max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left));
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 16px;
+    row-gap: 2px;
+  }
+  .wordmark { min-height: 44px; white-space: nowrap; }
+  .sign-out { min-height: 44px; display: inline-flex; align-items: center; }
+  .mark { width: 26px; height: 26px; margin-right: 6px; }
+  .site-header nav {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    gap: clamp(8px, 2vw, 18px);
+  }
+  .nav-link { min-height: 44px; padding: 0; display: inline-flex; align-items: center; }
+  .account-area { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; gap: 12px; min-height: 0; }
+  .account-name { max-width: min(55vw, 240px); }
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(24px, 6vw, 34px);
+    padding: 38px max(20px, env(safe-area-inset-right)) 42px max(20px, env(safe-area-inset-left));
+  }
+  .hero h1 { font-size: clamp(3.25rem, 9vw, 4.5rem); }
+  .hero-art { width: 100%; min-height: 0; height: clamp(240px, 48vw, 340px); }
+  .intro-title {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    font-size: clamp(1.125rem, 5vw, 1.6rem);
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-align: center;
+    white-space: normal;
+  }
+  .home-library, .library-main { padding-inline: clamp(20px, 5vw, 40px); }
+  .featured-row, .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .featured-row .game-card:not(:first-child) { display: block; }
+  .game-art { height: clamp(150px, 28vw, 190px); }
+  .game-card-copy { min-width: 0; padding: clamp(12px, 3vw, 17px); }
+  .game-card-copy h2 { overflow-wrap: anywhere; }
+  .library-intro { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding-bottom: 27px; }
+  .library-intro h1 { font-size: clamp(3.25rem, 10vw, 4.4rem); }
+  .library-description { width: auto; max-width: 38rem; margin: 0 0 12px; }
+  .library-signin { align-items: stretch; flex-direction: column; }
+  .signin-action { width: 100%; align-items: stretch; flex-direction: column; gap: 12px; }
+  .signin-action .button { width: min(100%, 360px); }
+  .game-login-code { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .site-footer {
+    min-height: 0;
+    padding: 14px max(20px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 5px;
+  }
+  .site-footer > span:nth-child(2) { display: block; grid-column: 1 / -1; grid-row: 2; }
+  .site-footer .footer-year { grid-column: 2; grid-row: 1; white-space: nowrap; }
+  .home-page.auth-required > main {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+  .home-page.auth-required .hero { width: min(100%, 420px); }
+  .home-page.auth-required .auth-panel { padding: clamp(18px, 5vw, 24px); }
+  .email-auth-form input { min-height: 44px; padding-inline: 12px; font-size: 16px; }
+  .password-control input { padding-right: 52px; }
+  .password-visibility { width: 48px; height: 44px; }
+  .button, .email-submit { min-height: 44px; }
+  .auth-mode-toggle, .copy-code, .download-link, .download-unavailable { min-height: 44px; }
+  .download-link, .download-unavailable { padding-inline: 12px; }
+  .text-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .toast {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right));
+    column-gap: 8px;
+  }
+  .site-header nav { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; gap: clamp(12px, 5vw, 20px); }
+  .account-area { grid-column: 2; grid-row: 1; gap: 8px; }
+  .account-name { max-width: min(22vw, 100px); }
+  .hero { padding-top: 30px; }
+  .hero-art { height: clamp(220px, 68vw, 285px); }
+  .intro-title { font-size: clamp(1rem, 5.5vw, 1.3rem); }
+  .featured-row, .game-grid { grid-template-columns: minmax(0, 1fr); }
+  .game-art { height: clamp(165px, 54vw, 230px); }
+  .game-card-copy { padding: 16px; }
+  .download-actions { gap: 8px; }
+  .download-link, .download-unavailable { flex: 1 1 auto; justify-content: center; min-width: 0; overflow-wrap: anywhere; text-align: center; }
+  .library-main { padding-top: 34px; }
+  .library-intro h1 { font-size: clamp(3rem, 14vw, 4.2rem); }
+  .library-list-head { gap: 12px; }
 }
