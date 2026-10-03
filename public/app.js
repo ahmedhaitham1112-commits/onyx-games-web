@@ -81,11 +81,12 @@ async function initializeAuth() {
   let authPending = false;
   let authMode = "login";
 
-  function setAuthMessage(message, isError = false) {
+  function setAuthMessage(message, isError = false, isSuccess = false) {
     if (!authMessage) return;
     authMessage.textContent = message;
     authMessage.hidden = !message;
     authMessage.classList.toggle("is-error", isError);
+    authMessage.classList.toggle("is-success", isSuccess);
   }
 
   function setAuthPending(pending) {
@@ -197,8 +198,12 @@ async function initializeAuth() {
           }
           throw error;
         }
-        if (data.session) await syncSession(data.session);
-        else setAuthMessage("Account created. Check your email to confirm it before logging in. If it does not arrive, the project owner needs to configure an email sender.");
+        if (data.session) {
+          await syncSession(data.session);
+          window.location.replace("/");
+        } else {
+          setAuthMessage("Account created! We sent a confirmation link to your email.", false, true);
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error?.code === "invalid_credentials" || /invalid login credentials/i.test(error?.message || "")) {

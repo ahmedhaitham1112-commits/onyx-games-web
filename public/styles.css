@@ -65,6 +65,7 @@ h1, h2, p { margin-top: 0; }
 .password-visibility svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
 .auth-feedback { margin: 0; color: #f0c98b; font-size: 11px; line-height: 1.5; }
 .auth-feedback.is-error { color: #ff9b9b; }
+.auth-feedback.is-success { color: var(--acid); }
 .email-submit { width: 100%; min-height: 39px; }
 .email-submit:disabled, .google-sign-in:disabled { cursor: wait; opacity: .8; }
 .auth-spinner { width: 13px; height: 13px; display: none; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: auth-spin 650ms linear infinite; }
