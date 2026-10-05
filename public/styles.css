@@ -165,7 +165,8 @@ h1, h2, p { margin-top: 0; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-html { min-height: 100%; background: #09070f url("/onyx%20background.png") center / cover fixed no-repeat; }
+html { min-height: 100%; background: #09070f; }
+html.wallpaper-ready { background-image: url("/onyx-background.jpg"); background-position: center; background-size: cover; background-attachment: fixed; background-repeat: no-repeat; }
 body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f75 44%, #09070fbd); }
 .site-header { border-color: #c6a8ff1c; background: #09070fbc; backdrop-filter: blur(18px); }
 .mark { filter: drop-shadow(0 0 10px #a881ff70); }
@@ -226,8 +227,15 @@ body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f
 .home-page.auth-required .home-library { display: none; }
 .home-page.auth-required .auth-panel { width: 100%; margin: 0; padding: 24px; border-color: #c6a8ff38; background: #100d17eF; box-shadow: 0 22px 70px #0006, 0 0 42px #8c50d31a; }
 
+.home-page.auth-pending { position: fixed; inset: 0; overflow: hidden; }
+.home-page.auth-pending > :not(.auth-loading) { visibility: hidden; }
+.auth-loading { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, #1a1028 0, #0b0811 48%, #07060b 100%); opacity: 1; transition: opacity 280ms ease, visibility 280ms ease; }
+.auth-loading img { width: 88px; height: 88px; object-fit: contain; filter: drop-shadow(0 0 19px #9f62e777); animation: auth-logo-pulse 1.8s ease-in-out infinite; }
+.auth-loading.is-fading { visibility: hidden; opacity: 0; }
+@keyframes auth-logo-pulse { 50% { opacity: .62; transform: scale(.96); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-copy, .hero-art { animation: none; }
+  .hero-copy, .hero-art, .auth-loading img { animation: none; }
 }
 
 img, picture, canvas, video { max-width: 100%; }

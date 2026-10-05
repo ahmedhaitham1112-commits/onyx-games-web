@@ -19,7 +19,14 @@ const sessionCodeLength = 8;
 const sessionCodeLifetimeMs = 5 * 60 * 1000;
 
 app.use(express.json({ limit: "32kb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"), {
+  maxAge: "1d",
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    if (path.extname(filePath) === ".html") res.setHeader("Cache-Control", "no-cache");
+  },
+}));
 
 function requireSupabase(res) {
   if (!supabase) {

@@ -7,6 +7,7 @@ const authPanel = document.querySelector("[data-auth-panel]");
 const emailAuthForm = document.querySelector("[data-email-auth]");
 const toast = document.querySelector("[data-toast]");
 let gamesLoaded = false;
+let initialAuthResolved = false;
 const toastMessage = (message) => {
   if (!toast) return;
   toast.textContent = message;
@@ -121,6 +122,39 @@ async function initializeAuth() {
     setAuthMessage("");
   }
 
+  function readCachedSession() {
+    try {
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key || !/^sb-.+-auth-token$/.test(key)) continue;
+        const stored = JSON.parse(localStorage.getItem(key) || "null");
+        const session = stored?.currentSession || stored;
+        if (session?.access_token && session?.user) return session;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  function resolveInitialAuth(user) {
+    if (initialAuthResolved) {
+      if (authPanel || user) renderAuthState(user);
+      return;
+    }
+    initialAuthResolved = true;
+    if (authPanel || user) renderAuthState(user);
+    document.body.classList.remove("auth-pending");
+    const loader = document.querySelector("[data-auth-loading]");
+    if (loader) {
+      requestAnimationFrame(() => loader.classList.add("is-fading"));
+      window.setTimeout(() => loader.remove(), 320);
+    }
+    const wallpaper = new Image();
+    wallpaper.onload = () => document.documentElement.classList.add("wallpaper-ready");
+    wallpaper.src = "/onyx-background.jpg";
+  }
+
   authToggle?.addEventListener("click", () => setAuthMode(authMode === "login" ? "signup" : "login"));
   passwordToggle?.addEventListener("click", () => {
     const isVisible = passwordInput.type === "text";
@@ -130,6 +164,13 @@ async function initializeAuth() {
     passwordToggle.querySelector("[data-password-eye]").hidden = !isVisible;
     passwordToggle.querySelector("[data-password-eye-off]").hidden = isVisible;
   });
+  const cachedSession = readCachedSession();
+  resolveInitialAuth(cachedSession ? {
+    username: cachedSession.user?.user_metadata?.username
+      || cachedSession.user?.email?.split("@")[0]
+      || "Player",
+  } : null);
+
   const configResponse = await fetch("/api/config");
   const config = await configResponse.json();
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
@@ -224,6 +265,7 @@ async function initializeAuth() {
 
   const { data: { session } } = await supabase.auth.getSession();
   if (session) await syncSession(session);
+  else if (authPanel) renderAuthState(null, supabase);
   supabase.auth.onAuthStateChange((_event, nextSession) => {
     if (nextSession) window.setTimeout(() => syncSession(nextSession), 0);
     else renderAuthState(null);
@@ -300,7 +342,9 @@ function renderAuthState(user, supabase) {
     return;
   }
   accountSlot.innerHTML = `<span class="account-name">${escapeHtml(user.username)}</span><button class="sign-out" type="button">Sign out</button>`;
-  accountSlot.querySelector(".sign-out").addEventListener("click", async () => {
+  const signOutButton = accountSlot.querySelector(".sign-out");
+  if (!supabase || !signOutButton) return;
+  signOutButton.addEventListener("click", async () => {
     await supabase.auth.signOut();
     renderAuthState(null, supabase);
     toastMessage("You have signed out.");
