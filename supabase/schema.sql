@@ -91,6 +91,15 @@ create table if not exists public.games (
   download_url_android text
 );
 
+alter table public.games add column if not exists download_url_pc text;
+
+create table if not exists public.purchases (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  game_id uuid not null references public.games (id) on delete cascade,
+  acquired_at timestamptz not null default now(),
+  primary key (user_id, game_id)
+);
+
 create table if not exists public.scores (
   user_id uuid not null references public.users (id) on delete cascade,
   game_id uuid not null references public.games (id) on delete cascade,
@@ -112,6 +121,7 @@ create index if not exists session_login_codes_expires_at_idx on public.session_
 
 alter table public.users enable row level security;
 alter table public.games enable row level security;
+alter table public.purchases enable row level security;
 alter table public.scores enable row level security;
 alter table public.session_login_codes enable row level security;
 

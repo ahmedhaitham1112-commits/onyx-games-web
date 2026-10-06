@@ -17,12 +17,11 @@ An Express website and API backed by Supabase Auth and Postgres. The browser use
 
 6. Open <http://localhost:3000>. Use `npm.cmd start` for a normal (non-watch) start.
 
-The game appears in the library after the schema is applied. Its download actions remain marked “Soon” until real builds are available. Set their URLs in Supabase:
+The game appears in the library after the schema is applied. PC downloads require the user to select **Get** first; the server checks ownership before returning the configured PC URL. Set the PC URL in Supabase:
 
 ```sql
 update public.games
-set download_url_pc = 'https://your-host/your-windows-build.zip',
-    download_url_android = 'https://your-host/your-android-build.apk'
+set download_url_pc = 'https://your-host/your-windows-build.zip'
 where slug = 'stare-at-a-guy-simulator';
 ```
 
@@ -40,7 +39,9 @@ The included [`render.yaml`](render.yaml) defines a Render web service using its
 
 ## API
 
-- `GET /api/games` returns the game catalog and download URLs.
+- `GET /api/games` returns the game catalog and, when authenticated, per-user ownership. It does not expose the PC download URL.
+- `POST /api/games/:slug/purchase` requires `Authorization: Bearer <Supabase access token>` and adds the currently free game to the user's library.
+- `GET /api/games/:slug/download` requires the same bearer token and returns the download URL only when the user owns the game.
 - `POST /api/login` accepts `{ "access_token": "<Supabase access token>" }`. It verifies the token, upserts the local profile, and returns `{ "session_token": "...", "user": { ... } }`. The session token is the Supabase access token; the game client should treat it as a bearer secret and send it as `session_token` to score submission.
 - `GET /api/users/username-available?username=<username>` checks whether a username is available for signup.
 - `GET /api/session/code` requires `Authorization: Bearer <Supabase access token>` and returns an eight-character, one-time code that expires after five minutes. The website displays this code after Google sign-in.

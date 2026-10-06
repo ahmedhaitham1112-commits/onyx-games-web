@@ -6,8 +6,9 @@ const gameCodePanel = document.querySelector("[data-game-code]");
 const authPanel = document.querySelector("[data-auth-panel]");
 const emailAuthForm = document.querySelector("[data-email-auth]");
 const toast = document.querySelector("[data-toast]");
-let gamesLoaded = false;
 let initialAuthResolved = false;
+let currentAccessToken = "";
+let gamesLoadSequence = 0;
 const toastMessage = (message) => {
   if (!toast) return;
   toast.textContent = message;
@@ -19,15 +20,18 @@ document.querySelectorAll("[data-year]").forEach((element) => {
   element.textContent = new Date().getFullYear();
 });
 
-async function loadGames() {
+async function loadGames(accessToken = currentAccessToken) {
   const containers = [document.querySelector("[data-featured]"), document.querySelector("[data-games]")].filter(Boolean);
-  if (!containers.length || gamesLoaded) return;
-  gamesLoaded = true;
+  if (!containers.length) return;
+  const requestSequence = ++gamesLoadSequence;
 
   try {
-    const response = await fetch("/api/games");
+    const response = await fetch("/api/games", {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
     if (!response.ok) throw new Error("Game library is unavailable.");
     const games = await response.json();
+    if (requestSequence !== gamesLoadSequence) return;
     const count = document.querySelector("[data-game-count]");
     if (count) count.textContent = `${String(games.length).padStart(2, "0")} TITLES`;
     containers.forEach((container) => {
@@ -39,16 +43,53 @@ async function loadGames() {
         <article class="game-card">
           <div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>
           <div class="game-card-copy"><div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>
-            <div class="download-actions">${downloadButton(game.download_url_pc, "PC", "Windows / PC")}${downloadButton(game.download_url_android, "Android", "Android")}</div>
+            <div class="download-actions">${gameActionButton(game)}${downloadButton(game.download_url_android, "Android", "Android")}</div>
           </div>
         </article>`).join("");
     });
   } catch (error) {
+    if (requestSequence !== gamesLoadSequence) return;
     containers.forEach((container) => {
       container.innerHTML = `<p class="empty-state">${escapeHtml(error.message)} Check that Supabase is configured and the schema has been applied.</p>`;
     });
   }
 }
+
+function gameActionButton(game) {
+  const action = game.owned ? "download" : "get";
+  const label = game.owned ? "Download" : "Get";
+  return `<button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">${game.owned ? "↓" : "+"}</span></button>`;
+}
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-game-action]");
+  if (!button || button.disabled) return;
+  if (!currentAccessToken) {
+    toastMessage("Sign in to get or download games.");
+    return;
+  }
+
+  const isGet = button.dataset.gameAction === "get";
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/games/${encodeURIComponent(button.dataset.gameSlug)}/${isGet ? "purchase" : "download"}`, {
+      method: isGet ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${currentAccessToken}` },
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not complete the game request.");
+    if (isGet) {
+      toastMessage("Game added to your library.");
+      await loadGames();
+      return;
+    }
+    window.location.assign(result.url);
+  } catch (error) {
+    toastMessage(error.message || "Could not complete the game request.");
+  } finally {
+    if (button.isConnected) button.disabled = false;
+  }
+});
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -165,6 +206,7 @@ async function initializeAuth() {
     passwordToggle.querySelector("[data-password-eye-off]").hidden = isVisible;
   });
   const cachedSession = readCachedSession();
+  currentAccessToken = cachedSession?.access_token || "";
   resolveInitialAuth(cachedSession ? {
     username: cachedSession.user?.user_metadata?.username
       || cachedSession.user?.email?.split("@")[0]
@@ -182,7 +224,7 @@ async function initializeAuth() {
       if (getSignupUsername(new FormData(emailAuthForm)) === null) return;
       setAuthMessage("Add your Supabase URL and anon key to .env to enable sign-in.", true);
     });
-    if (!authPanel) window.location.replace("/");
+    if (!authPanel) await loadGames();
     return;
   }
 
@@ -266,12 +308,18 @@ async function initializeAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) await syncSession(session);
   else if (authPanel) renderAuthState(null, supabase);
+  else await loadGames();
   supabase.auth.onAuthStateChange((_event, nextSession) => {
     if (nextSession) window.setTimeout(() => syncSession(nextSession), 0);
-    else renderAuthState(null);
+    else {
+      const hadAccessToken = Boolean(currentAccessToken);
+      renderAuthState(null);
+      if (hadAccessToken) void loadGames("");
+    }
   });
 
   async function syncSession(session) {
+    currentAccessToken = session.access_token;
     renderAuthState({
       username: session.user?.user_metadata?.username || session.user?.email?.split("@")[0] || "Player",
     }, supabase);
@@ -286,6 +334,7 @@ async function initializeAuth() {
       return;
     }
     renderAuthState(result.user, supabase);
+    await loadGames(session.access_token);
     document.querySelectorAll("[data-auth-note], [data-library-note]").forEach((element) => {
       element.textContent = `Signed in as ${result.user.username}. Your game scores are ready to sync.`;
     });
@@ -322,14 +371,9 @@ function renderGameCode(code) {
 }
 
 function renderAuthState(user, supabase) {
-  if (!authPanel && !user) {
-    window.location.replace("/");
-    return;
-  }
   if (document.body.classList.contains("home-page")) {
     document.body.classList.toggle("auth-required", !user);
     document.querySelector(".hero")?.setAttribute("aria-labelledby", user ? "hero-title" : "auth-heading");
-    if (user) loadGames();
   }
   if (authPanel) authPanel.hidden = Boolean(user);
   document.querySelectorAll("[data-sign-in]").forEach((button) => {
@@ -337,6 +381,7 @@ function renderAuthState(user, supabase) {
   });
   if (!accountSlot) return;
   if (!user) {
+    currentAccessToken = "";
     accountSlot.innerHTML = '<span class="account-label">PLAYER 01</span>';
     renderGameCode(null);
     return;
@@ -351,6 +396,5 @@ function renderAuthState(user, supabase) {
   });
 }
 
-if (!authPanel) loadGames();
 initializeHeroIntro();
 initializeAuth().catch((error) => toastMessage(error.message));

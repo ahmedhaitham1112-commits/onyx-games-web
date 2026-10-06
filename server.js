@@ -50,6 +50,21 @@ async function getAuthenticatedUser(accessToken) {
   return { user: data.user, googleId: googleIdentity?.id || null };
 }
 
+function getBearerToken(req) {
+  return (req.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
+}
+
+// Keep PC download resolution here so storage can be changed without touching the route.
+async function getGameDownloadLink(gameId) {
+  const { data, error } = await supabase
+    .from("games")
+    .select("download_url_pc")
+    .eq("id", gameId)
+    .single();
+  if (error) throw error;
+  return data.download_url_pc;
+}
+
 function normalizeUsername(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -300,19 +315,112 @@ app.get("/api/scores/leaderboard", async (req, res) => {
   res.json(data.map((entry) => ({ username: entry.users.username, score: entry.score })));
 });
 
-app.get("/api/games", async (_req, res) => {
+app.get("/api/games", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
 
-  const { data, error } = await supabase
+  const accessToken = getBearerToken(req);
+  let userId = null;
+  if (accessToken) {
+    const authResult = await getAuthenticatedUser(accessToken);
+    if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+    userId = authResult.user.id;
+  }
+
+  const { data: games, error } = await supabase
     .from("games")
-    .select("id, slug, name, download_url_pc, download_url_android")
+    .select("id, slug, name, download_url_android")
     .order("name", { ascending: true });
   if (error) {
     console.error("Could not load games:", error.message);
     return res.status(500).json({ error: "Could not load games." });
   }
 
-  res.json(data);
+  let ownedGameIds = new Set();
+  if (userId) {
+    const { data: purchases, error: purchaseError } = await supabase
+      .from("purchases")
+      .select("game_id")
+      .eq("user_id", userId);
+    if (purchaseError) {
+      console.error("Could not load game ownership:", purchaseError.message);
+      return res.status(503).json({ error: "Game ownership is unavailable. Apply the purchases table in supabase/schema.sql." });
+    }
+    ownedGameIds = new Set(purchases.map((purchase) => purchase.game_id));
+  }
+
+  res.json(games.map(({ id, ...game }) => ({ ...game, owned: ownedGameIds.has(id) })));
+});
+
+app.post("/api/games/:slug/purchase", async (req, res) => {
+  if (!requireSupabase(res)) return;
+
+  const authResult = await getAuthenticatedUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  const { data: game, error: gameError } = await supabase
+    .from("games")
+    .select("id")
+    .eq("slug", req.params.slug)
+    .maybeSingle();
+  if (gameError) {
+    console.error("Could not look up game for purchase:", gameError.message);
+    return res.status(500).json({ error: "Could not look up the game." });
+  }
+  if (!game) return res.status(404).json({ error: "Game not found." });
+
+  const { error } = await supabase
+    .from("purchases")
+    .upsert({ user_id: authResult.user.id, game_id: game.id }, {
+      onConflict: "user_id,game_id",
+      ignoreDuplicates: true,
+    });
+  if (error) {
+    console.error("Could not add game to library:", error.message);
+    return res.status(503).json({ error: "Game acquisition is unavailable. Apply the purchases table in supabase/schema.sql." });
+  }
+
+  res.json({ owned: true });
+});
+
+app.get("/api/games/:slug/download", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+
+  const authResult = await getAuthenticatedUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  const { data: game, error: gameError } = await supabase
+    .from("games")
+    .select("id")
+    .eq("slug", req.params.slug)
+    .maybeSingle();
+  if (gameError) {
+    console.error("Could not look up game for download:", gameError.message);
+    return res.status(500).json({ error: "Could not look up the game." });
+  }
+  if (!game) return res.status(404).json({ error: "Game not found." });
+
+  const { data: purchase, error: purchaseError } = await supabase
+    .from("purchases")
+    .select("game_id")
+    .eq("user_id", authResult.user.id)
+    .eq("game_id", game.id)
+    .maybeSingle();
+  if (purchaseError) {
+    console.error("Could not check game ownership:", purchaseError.message);
+    return res.status(503).json({ error: "Game ownership is unavailable. Apply the purchases table in supabase/schema.sql." });
+  }
+  if (!purchase) return res.status(403).json({ error: "You need to get this game before downloading it." });
+
+  try {
+    const url = await getGameDownloadLink(game.id);
+    if (!url) return res.status(404).json({ error: "A PC download is not available for this game." });
+    res.json({ url });
+  } catch (error) {
+    console.error("Could not get game download link:", error.message);
+    res.status(500).json({ error: "Could not get the game download link." });
+  }
 });
 
 app.use("/api", (_req, res) => res.status(404).json({ error: "API endpoint not found." }));
