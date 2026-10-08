@@ -366,3 +366,11 @@ img, picture, canvas, video { max-width: 100%; }
   .library-intro h1 { font-size: clamp(3rem, 14vw, 4.2rem); }
   .library-list-head { gap: 12px; }
 }
+
+.game-download-area { display: grid; justify-items: start; gap: 5px; }
+.download-actions > [data-platform-option] { display: inline-flex; }
+.download-actions > [data-platform-option][hidden] { display: none; }
+.platform-note { flex: 1 0 100%; width: 100%; margin: 0; color: #c7b6dd; font-size: 10px; line-height: 1.55; }
+.platform-toggle, .platform-inline-action { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 10px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.platform-toggle { min-height: 44px; }
+.platform-toggle:hover, .platform-inline-action:hover { color: #ead9ff; }

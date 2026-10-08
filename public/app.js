@@ -9,6 +9,7 @@ const toast = document.querySelector("[data-toast]");
 let initialAuthResolved = false;
 let currentAccessToken = "";
 let gamesLoadSequence = 0;
+const visitorPlatform = detectVisitorPlatform();
 const toastMessage = (message) => {
   if (!toast) return;
   toast.textContent = message;
@@ -43,7 +44,7 @@ async function loadGames(accessToken = currentAccessToken) {
         <article class="game-card">
           <div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>
           <div class="game-card-copy"><div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>
-            <div class="download-actions">${gameActionButton(game)}${downloadButton(game.download_url_android, "Android", "Android")}</div>
+            ${gameDownloadOptions(game, visitorPlatform)}
           </div>
         </article>`).join("");
     });
@@ -61,7 +62,50 @@ function gameActionButton(game) {
   return `<button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">${game.owned ? "↓" : "+"}</span></button>`;
 }
 
+function detectVisitorPlatform() {
+  const platform = navigator.userAgentData?.platform || navigator.userAgent || "";
+  if (/windows/i.test(platform)) return "windows";
+  if (/android/i.test(platform)) return "android";
+  return "unsupported";
+}
+
+function gameDownloadOptions(game, platform) {
+  const pcHidden = platform !== "windows";
+  const androidHidden = platform !== "android";
+  const androidNote = platform === "android" ? "" : " hidden";
+  const unsupportedNote = platform === "unsupported" ? "" : " hidden";
+  return `<div class="game-download-area" data-download-area data-device-platform="${platform}">
+    <div class="download-actions">
+      <div data-platform-option="windows"${pcHidden ? " hidden" : ""}>${gameActionButton(game)}</div>
+      <div data-platform-option="android"${androidHidden ? " hidden" : ""}>${downloadButton(null, "Android", "Android")}</div>
+      <p class="platform-note" data-platform-note="android"${androidNote}>This game's PC version needs a Windows computer. Open Onyx Games on your PC to download it.</p>
+      <p class="platform-note" data-platform-note="unsupported"${unsupportedNote}>This device isn't supported yet. <button class="platform-inline-action" type="button" data-show-anyway>Show anyway</button></p>
+    </div>
+    <button class="platform-toggle" type="button" data-other-platforms aria-expanded="false">Other platforms</button>
+  </div>`;
+}
+
 document.addEventListener("click", async (event) => {
+  const otherPlatformsButton = event.target.closest("[data-other-platforms]");
+  if (otherPlatformsButton) {
+    const area = otherPlatformsButton.closest("[data-download-area]");
+    const platform = area.dataset.devicePlatform;
+    const otherPlatform = platform === "android" ? "windows" : "android";
+    const option = area.querySelector(`[data-platform-option="${otherPlatform}"]`);
+    const expanded = otherPlatformsButton.getAttribute("aria-expanded") === "true";
+    option.hidden = expanded;
+    otherPlatformsButton.setAttribute("aria-expanded", String(!expanded));
+    return;
+  }
+
+  const showAnywayButton = event.target.closest("[data-show-anyway]");
+  if (showAnywayButton) {
+    const area = showAnywayButton.closest("[data-download-area]");
+    area.querySelector('[data-platform-option="windows"]').hidden = false;
+    showAnywayButton.hidden = true;
+    return;
+  }
+
   const button = event.target.closest("[data-game-action]");
   if (!button || button.disabled) return;
   if (!currentAccessToken) {
@@ -98,15 +142,15 @@ function escapeHtml(value) {
 }
 
 function downloadButton(url, label, platform) {
-  if (!url) return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Soon</span>`;
+  if (!url) return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
   let safeUrl;
   try {
     safeUrl = new URL(url);
   } catch {
-    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Soon</span>`;
+    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
   }
   if (!['https:', 'http:'].includes(safeUrl.protocol)) {
-    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Soon</span>`;
+    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
   }
   return `<a class="download-link" href="${escapeHtml(safeUrl.href)}" target="_blank" rel="noopener noreferrer" aria-label="Download ${platform}">${label} <span aria-hidden="true">↓</span></a>`;
 }
