@@ -164,6 +164,40 @@ app.post("/api/login", async (req, res) => {
   res.json({ session_token: req.body.access_token, user: profile });
 });
 
+app.get("/api/session/me", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const accessToken = getBearerToken(req);
+  if (!accessToken) {
+    return res.status(401).json({ error: "A Supabase access token is required." });
+  }
+  if (!requireSupabase(res)) return;
+
+  const result = await getAuthenticatedUser(accessToken);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+
+  const { data: profile, error } = await supabase
+    .from("users")
+    .select("id, username, display_name")
+    .eq("id", result.user.id)
+    .maybeSingle();
+  if (error) {
+    console.error("Could not load user profile:", error.message);
+    return res.status(500).json({ error: "Could not load the user profile." });
+  }
+
+  const displayName = profile?.display_name
+    || result.user.user_metadata?.display_name
+    || result.user.user_metadata?.full_name
+    || result.user.user_metadata?.name
+    || result.user.email
+    || "Player";
+  const username = profile?.username
+    || normalizeUsername(result.user.user_metadata?.username)
+    || `${normalizeUsername(displayName).replace(/[^a-z0-9_]/g, "_").slice(0, 14) || "player"}_${result.user.id.replaceAll("-", "").slice(0, 8)}`;
+
+  res.json({ id: result.user.id, username, display_name: displayName });
+});
+
 app.get("/api/session/code", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
