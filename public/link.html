@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#100b18">
+    <title>Link your game | Onyx Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/onyx-logo.png">
+    <link rel="stylesheet" href="/styles.css?v=3">
+    <script type="module" src="/link.js"></script>
+  </head>
+  <body class="device-link-page">
+    <main class="device-link-main">
+      <section class="device-link-card" aria-labelledby="device-link-title">
+        <a class="wordmark device-link-wordmark" href="/" aria-label="Onyx Games home"><img class="mark" src="/onyx-logo.png" alt=""> ONYX<span class="wordmark-light">GAMES</span></a>
+        <div class="device-link-mark" aria-hidden="true"><span></span></div>
+        <p class="eyebrow device-link-eyebrow">GAME SIGN-IN</p>
+        <p class="device-link-code" data-code-label hidden></p>
+        <div data-link-auth hidden>
+          <h1 id="device-link-title">Sign in to continue</h1>
+          <p class="device-link-copy">Use your Onyx Games account to link this device.</p>
+          <button class="button button-light device-google-button" type="button" data-device-google><span class="google-g" aria-hidden="true">G</span><span>Continue with Google</span></button>
+          <div class="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
+          <form class="email-auth-form device-email-form" data-device-email novalidate>
+            <div class="signup-fields" data-device-signup-fields hidden>
+              <label>Username<input name="username" type="text" minlength="3" maxlength="20" autocomplete="username"></label>
+              <label>Display name<input name="display_name" type="text" maxlength="80" autocomplete="name"></label>
+            </div>
+            <label>Email<input name="email" type="email" autocomplete="email" required></label>
+            <label>Password<input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
+            <p class="auth-feedback" data-device-message role="status" aria-live="polite" hidden></p>
+            <button class="button button-dark email-submit" type="submit" data-device-submit>Log in</button>
+            <button class="auth-mode-toggle" type="button" data-device-toggle>Create an account</button>
+          </form>
+        </div>
+        <div data-link-approval hidden>
+          <h1 id="device-link-title">Sign in to <span class="device-game-title">Stare at a Guy Simulator</span> as <span class="device-username" data-device-username></span>?</h1>
+          <p class="device-link-copy">This will connect your Onyx Games account to the game on your other device.</p>
+          <p class="auth-feedback device-link-feedback" data-device-result role="status" aria-live="polite" hidden></p>
+          <div class="device-link-actions">
+            <button class="button button-dark" type="button" data-device-approve>Approve</button>
+            <button class="button button-light" type="button" data-device-deny>Cancel</button>
+          </div>
+        </div>
+        <p class="device-link-error" data-link-error role="status" aria-live="polite" hidden></p>
+      </section>
+    </main>
+  </body>
+</html>

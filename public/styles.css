@@ -374,3 +374,33 @@ img, picture, canvas, video { max-width: 100%; }
 .platform-toggle, .platform-inline-action { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 10px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .platform-toggle { min-height: 44px; }
 .platform-toggle:hover, .platform-inline-action:hover { color: #ead9ff; }
+
+.device-link-page { min-height: 100vh; min-height: 100dvh; background: radial-gradient(ellipse at 50% 28%, #2b1940 0, #171020 32%, #0b0810 74%); }
+.device-link-main { min-height: 100vh; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; }
+.device-link-card { position: relative; width: min(100%, 460px); padding: 28px clamp(22px, 6vw, 40px) 36px; overflow: hidden; border: 1px solid #b58ae849; border-radius: 8px; background: linear-gradient(155deg, #21182d, #120e19 72%); box-shadow: 0 28px 90px #0008, 0 0 54px #8c50d326; animation: rise-in 520ms ease both; }
+.device-link-card::before { position: absolute; top: 0; left: 0; width: 100%; height: 2px; content: ""; background: linear-gradient(90deg, transparent, #c29aff, #e6c9ff, transparent); }
+.device-link-wordmark { margin-bottom: 30px; }
+.device-link-mark { width: 52px; aspect-ratio: 1; margin-bottom: 23px; display: grid; place-items: center; border: 1px solid #c29aff4a; border-radius: 50%; background: radial-gradient(circle, #9f62e736, #613d8530 60%, transparent 61%); box-shadow: 0 0 27px #a15bff30; }
+.device-link-mark span { width: 16px; height: 21px; display: block; border: 2px solid #d6b8ff; border-radius: 10px 10px 4px 4px; }
+.device-link-eyebrow { margin-bottom: 9px; color: #c2a3e6; }
+.device-link-code { margin: 0 0 14px; color: #9785a9; font: 10px var(--mono); }
+.device-link-card h1 { margin: 0 0 12px; font-size: clamp(25px, 6vw, 31px); font-weight: 600; line-height: 1.23; overflow-wrap: anywhere; }
+.device-game-title { color: #d0a8ff; }
+.device-username { color: #e4caff; }
+.device-link-copy { margin: 0 0 24px; color: #b6aabe; font-size: 13px; line-height: 1.65; }
+.device-google-button { width: 100%; min-height: 48px; }
+.device-email-form { gap: 12px; }
+.device-email-form input { min-height: 44px; font-size: 16px; }
+.device-email-form .auth-mode-toggle { min-height: 40px; }
+.device-link-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
+.device-link-actions .button { min-height: 48px; }
+.device-link-feedback { margin: 18px 0 0; line-height: 1.6; }
+.device-link-error { margin: 0; padding: 12px; border: 1px solid #e68b9d60; background: #541f3436; color: #ffc0cd; font-size: 12px; line-height: 1.55; }
+.device-link-card [data-link-auth], .device-link-card [data-link-approval] { animation: auth-fields-in 220ms ease both; }
+
+@media (max-width: 480px) {
+  .device-link-main { padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right)); }
+  .device-link-card { padding: 23px 22px 28px; border-radius: 6px; }
+  .device-link-wordmark { margin-bottom: 25px; }
+  .device-link-actions { grid-template-columns: 1fr; }
+}

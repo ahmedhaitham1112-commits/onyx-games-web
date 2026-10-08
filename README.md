@@ -7,8 +7,9 @@ An Express website and API backed by Supabase Auth and Postgres. The browser use
 1. Install Node.js 20 or newer.
 2. Create a Supabase project and follow [Google OAuth setup](#google-oauth-setup). Enable email sign-ups in Supabase Authentication settings if they are disabled.
 3. In the Supabase SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql). Re-run it on existing projects to apply the username migration and Auth profile trigger.
-4. Copy `.env.example` to `.env` and fill in the project URL, anon key, and service-role key from Supabase Project Settings → API. In PowerShell, use `Copy-Item .env.example .env`.
-5. From the project folder, install and start the app:
+4. Run [`supabase/device-link.sql`](supabase/device-link.sql) in the Supabase SQL Editor to enable device linking and long-lived game sessions.
+5. Copy `.env.example` to `.env` and fill in the project URL, anon key, and service-role key from Supabase Project Settings → API. In PowerShell, use `Copy-Item .env.example .env`.
+6. From the project folder, install and start the app:
 
    ```powershell
    npm.cmd install
@@ -46,5 +47,10 @@ The included [`render.yaml`](render.yaml) defines a Render web service using its
 - `GET /api/users/username-available?username=<username>` checks whether a username is available for signup.
 - `GET /api/session/code` requires `Authorization: Bearer <Supabase access token>` and returns an eight-character, one-time code that expires after five minutes. The website displays this code after Google sign-in.
 - `POST /api/session/redeem` accepts `{ "code": "..." }` and returns `{ "session_token": "<Supabase access token>" }`. Redemption consumes the code; the game should keep the returned token secret and use it for authenticated API requests.
+- `POST /api/device/start` requires no login and returns a private `device_code`, a short `user_code`, and a verification URL. The device code expires after 10 minutes.
+- `POST /api/device/poll` accepts `{ "device_code": "..." }` and returns `pending`, `expired`, `denied`, or `approved`. The first approved poll returns a random game session token valid for 90 days; that approval can only be redeemed once. Polling is rate limited.
+- `POST /api/device/approve` and `POST /api/device/deny` require `Authorization: Bearer <Supabase access token>` and `{ "user_code": "..." }`. Players use the link page to authenticate and approve or cancel.
+- `POST /api/session/revoke` accepts `Authorization: Bearer <game session token>` (or `{ "session_token": "..." }`) and deletes the hashed game session so the game can sign out.
+- `GET /api/session/me`, score submission, game ownership, and downloads accept either a game session token or a Supabase access token. Game session tokens are stored only as SHA-256 hashes.
 - `POST /api/scores/submit` accepts `{ "session_token": "...", "game_slug": "stare-at-a-guy-simulator", "score": 123 }`. The supplied score replaces the user's current total for that game.
 - `GET /api/scores/leaderboard?game=stare-at-a-guy-simulator` returns the top 10 `{ "username", "score" }` entries in descending score order.
