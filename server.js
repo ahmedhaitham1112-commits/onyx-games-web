@@ -84,6 +84,33 @@ function hashSessionCode(code) {
   return createHash("sha256").update(code).digest("hex");
 }
 
+function logDeviceLinkError(action, error) {
+  const redact = (value) => {
+    if (typeof value !== "string") return value ?? null;
+    return value
+      .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED]")
+      .replace(/\b[A-Za-z0-9_-]{40,}\b/g, "[REDACTED]")
+      .replace(/((?:device_code|session_token|access_token|api[_ -]?key|secret)\s*[:=]\s*)["']?[^,\s"']+/gi, "$1[REDACTED]");
+  };
+  console.error(`Device-link ${action} failed:`, {
+    code: redact(error?.code),
+    message: redact(error?.message),
+    details: redact(error?.details),
+    hint: redact(error?.hint),
+  });
+}
+
+function withDeviceLinkErrorLogging(action, publicMessage, handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (error) {
+      logDeviceLinkError(action, error);
+      return res.status(500).json({ error: publicMessage });
+    }
+  };
+}
+
 function createSessionCode() {
   return Array.from({ length: sessionCodeLength }, () => (
     sessionCodeAlphabet[randomInt(sessionCodeAlphabet.length)]
@@ -227,7 +254,7 @@ app.post("/api/login", async (req, res) => {
   res.json({ session_token: req.body.access_token, user: profile });
 });
 
-app.post("/api/device/start", async (_req, res) => {
+app.post("/api/device/start", withDeviceLinkErrorLogging("start", "Could not start device sign-in.", async (_req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
 
@@ -249,15 +276,15 @@ app.post("/api/device/start", async (_req, res) => {
         expires_in: deviceLinkLifetimeMs / 1000,
       });
     }
+    logDeviceLinkError("start", error);
     if (error.code !== "23505") {
-      console.error("Could not start device link:", error.code);
       return res.status(500).json({ error: "Could not start device sign-in." });
     }
   }
   res.status(503).json({ error: "Could not create a unique device link. Try again." });
-});
+}));
 
-app.post("/api/device/poll", async (req, res) => {
+app.post("/api/device/poll", withDeviceLinkErrorLogging("poll", "Could not check device sign-in.", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
 
@@ -273,7 +300,7 @@ app.post("/api/device/poll", async (req, res) => {
 
   const { data, error } = await supabase.rpc("poll_device_link", { p_device_code_hash: deviceCodeHash });
   if (error) {
-    console.error("Could not poll device link:", error.code);
+    logDeviceLinkError("poll", error);
     return res.status(500).json({ error: "Could not check device sign-in." });
   }
   const result = Array.isArray(data) ? data[0] : data;
@@ -283,9 +310,9 @@ app.post("/api/device/poll", async (req, res) => {
   res.json(result.status === "approved"
     ? { status: "approved", session_token: result.session_token, expires_in: gameSessionLifetimeMs / 1000 }
     : { status: result.status });
-});
+}));
 
-app.post("/api/device/approve", async (req, res) => {
+app.post("/api/device/approve", withDeviceLinkErrorLogging("approve", "Could not approve device sign-in.", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
   const authResult = await getAuthenticatedUser(getBearerToken(req));
@@ -304,14 +331,14 @@ app.post("/api/device/approve", async (req, res) => {
     .select("user_code")
     .maybeSingle();
   if (error) {
-    console.error("Could not approve device link:", error.code);
+    logDeviceLinkError("approve", error);
     return res.status(500).json({ error: "Could not approve device sign-in." });
   }
   if (!data) return res.status(409).json({ error: "This device link has expired or is no longer pending." });
   res.json({ approved: true });
-});
+}));
 
-app.post("/api/device/deny", async (req, res) => {
+app.post("/api/device/deny", withDeviceLinkErrorLogging("deny", "Could not cancel device sign-in.", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
   const authResult = await getAuthenticatedUser(getBearerToken(req));
@@ -330,12 +357,12 @@ app.post("/api/device/deny", async (req, res) => {
     .select("user_code")
     .maybeSingle();
   if (error) {
-    console.error("Could not deny device link:", error.code);
+    logDeviceLinkError("deny", error);
     return res.status(500).json({ error: "Could not cancel device sign-in." });
   }
   if (!data) return res.status(409).json({ error: "This device link has expired or is no longer pending." });
   res.json({ denied: true });
-});
+}));
 
 app.post("/api/session/revoke", async (req, res) => {
   res.set("Cache-Control", "no-store");

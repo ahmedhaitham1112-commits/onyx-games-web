@@ -108,3 +108,23 @@ $$;
 
 revoke all on function public.poll_device_link(text) from public, anon, authenticated;
 grant execute on function public.poll_device_link(text) to service_role;
+
+do $$
+declare
+  pgcrypto_schema text;
+begin
+  select namespace.nspname into pgcrypto_schema
+  from pg_extension as extension
+  join pg_namespace as namespace on namespace.oid = extension.extnamespace
+  where extension.extname = 'pgcrypto';
+
+  if pgcrypto_schema is null then
+    raise exception 'pgcrypto extension is not installed';
+  end if;
+
+  execute format(
+    'alter function public.poll_device_link(text) set search_path = public, %I, pg_temp',
+    pgcrypto_schema
+  );
+end;
+$$;
