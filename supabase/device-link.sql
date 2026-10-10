@@ -8,8 +8,11 @@ create table if not exists public.device_links (
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
   redeemed_at timestamptz,
+  session_token text,
   check ((status = 'pending' and user_id is null) or (status <> 'pending' and user_id is not null))
 );
+
+alter table public.device_links add column if not exists session_token text;
 
 create index if not exists device_links_expires_at_idx on public.device_links (expires_at);
 
@@ -67,7 +70,20 @@ begin
     return;
   end if;
 
-  if link_request.expires_at <= now_at or link_request.redeemed_at is not null then
+  if link_request.redeemed_at is not null then
+    if link_request.session_token is not null
+      and link_request.redeemed_at + interval '2 minutes' > now_at then
+      return query select 'approved'::text, link_request.session_token;
+    else
+      update public.device_links
+      set session_token = null
+      where device_code_hash = p_device_code_hash;
+      return query select 'expired'::text, null::text;
+    end if;
+    return;
+  end if;
+
+  if link_request.expires_at <= now_at then
     return query select 'expired'::text, null::text;
     return;
   end if;
@@ -82,7 +98,8 @@ begin
     now_at
   );
   update public.device_links
-  set redeemed_at = now_at
+  set redeemed_at = now_at,
+      session_token = issued_token
   where device_code_hash = p_device_code_hash;
 
   return query select 'approved'::text, issued_token;

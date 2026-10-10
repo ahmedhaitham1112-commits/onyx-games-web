@@ -22,6 +22,14 @@ const gameSessionLifetimeMs = 90 * 24 * 60 * 60 * 1000;
 const devicePollRateLimits = new Map();
 
 app.use(express.json({ limit: "32kb" }));
+app.use((req, res, next) => {
+  if (!["/api/device/start", "/api/device/poll"].includes(req.path)) return next();
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 app.use(express.static(path.join(__dirname, "public"), {
   maxAge: "1d",
   etag: true,
