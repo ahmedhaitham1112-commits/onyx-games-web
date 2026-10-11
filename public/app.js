@@ -200,6 +200,8 @@ async function initializeAuth() {
     const isSignup = mode === "signup";
     signupFields.hidden = !isSignup;
     signupFields.querySelectorAll("input").forEach((input) => { input.required = isSignup; });
+    const signupConsent = signupFields.querySelector("[data-signup-consent]");
+    if (signupConsent) signupConsent.required = isSignup;
     emailAuthForm.elements.password.autocomplete = isSignup ? "new-password" : "current-password";
     authHeading.textContent = isSignup ? "Create your account" : "Log in with email";
     authSubmitLabel.textContent = isSignup ? "Create account" : "Log in";
@@ -275,6 +277,12 @@ async function initializeAuth() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   document.querySelectorAll("[data-sign-in]").forEach((button) => {
     button.addEventListener("click", async () => {
+      const consent = button.closest(".auth-panel, .signin-action")?.querySelector("[data-legal-consent]");
+      if (!consent?.checked) {
+        toastMessage("Please agree to the Terms of Service and Privacy Policy before continuing.");
+        consent?.focus();
+        return;
+      }
       button.disabled = true;
       button.classList.add("is-loading");
       try {
@@ -300,6 +308,10 @@ async function initializeAuth() {
     const password = String(formData.get("password"));
     const username = getSignupUsername(formData);
     if (authMode === "signup" && username === null) return;
+    if (authMode === "signup" && !emailAuthForm.querySelector("[data-signup-consent]")?.checked) {
+      setAuthMessage("Confirm that you are 13 or older and agree to the Terms of Service and Privacy Policy.", true);
+      return;
+    }
     setAuthPending(true);
     try {
       if (authMode === "signup") {
@@ -430,7 +442,7 @@ function renderAuthState(user, supabase) {
     renderGameCode(null);
     return;
   }
-  accountSlot.innerHTML = `<span class="account-name">${escapeHtml(user.username)}</span><button class="sign-out" type="button">Sign out</button>`;
+  accountSlot.innerHTML = `<a class="account-name" href="/account.html">${escapeHtml(user.username)}</a><a class="account-settings-link" href="/account.html">Settings</a><button class="sign-out" type="button">Sign out</button>`;
   const signOutButton = accountSlot.querySelector(".sign-out");
   if (!supabase || !signOutButton) return;
   signOutButton.addEventListener("click", async () => {

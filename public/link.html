@@ -22,12 +22,14 @@
         <div data-link-auth hidden>
           <h1 id="device-link-title">Sign in to continue</h1>
           <p class="device-link-copy">Use your Onyx Games account to link this device.</p>
+          <label class="legal-consent google-consent"><input type="checkbox" data-device-google-consent><span>By continuing, you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</span></label>
           <button class="button button-light device-google-button" type="button" data-device-google><span class="google-g" aria-hidden="true">G</span><span>Continue with Google</span></button>
           <div class="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
           <form class="email-auth-form device-email-form" data-device-email novalidate>
             <div class="signup-fields" data-device-signup-fields hidden>
               <label>Username<input name="username" type="text" minlength="3" maxlength="20" autocomplete="username"></label>
               <label>Display name<input name="display_name" type="text" maxlength="80" autocomplete="name"></label>
+              <label class="legal-consent"><input name="terms_consent" type="checkbox" data-device-signup-consent required><span>I am 13 or older and agree to the <a href="/terms.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.</span></label>
             </div>
             <label>Email<input name="email" type="email" autocomplete="email" required></label>
             <label>Password<input name="password" type="password" minlength="8" autocomplete="current-password" required></label>
@@ -48,5 +50,11 @@
         <p class="device-link-error" data-link-error role="status" aria-live="polite" hidden></p>
       </section>
     </main>
+    <footer class="site-footer">
+      <div class="footer-brand"><a class="wordmark footer-mark" href="/">ONYX<span class="wordmark-light">GAMES</span></a><span>Made for the curious.</span></div>
+      <nav class="footer-links" aria-label="Footer"><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/rules.html">Community rules</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/cookies.html">Cookies</a><a href="/account.html">Account settings</a></nav>
+      <span class="footer-year">© <span data-year></span> ONYX GAMES</span>
+    </footer>
+    <script type="module" src="/site.js"></script>
   </body>
 </html>

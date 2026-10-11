@@ -413,7 +413,71 @@ app.get("/api/session/me", async (req, res) => {
     || normalizeUsername(result.user.user_metadata?.username)
     || `${normalizeUsername(displayName).replace(/[^a-z0-9_]/g, "_").slice(0, 14) || "player"}_${result.user.id.replaceAll("-", "").slice(0, 8)}`;
 
-  res.json({ id: result.user.id, username, display_name: displayName });
+  res.json({ id: result.user.id, username, display_name: displayName, email: result.user.email || "" });
+});
+
+app.put("/api/account", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+
+  const authResult = await getAuthenticatedUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  const displayName = typeof req.body?.display_name === "string" ? req.body.display_name.trim() : "";
+  if (!displayName || displayName.length > 80) {
+    return res.status(400).json({ error: "Display name must be between 1 and 80 characters." });
+  }
+
+  const { error: profileError } = await supabase
+    .from("users")
+    .update({ display_name: displayName })
+    .eq("id", authResult.user.id);
+  if (profileError) {
+    console.error("Could not update display name:", profileError.message);
+    return res.status(500).json({ error: "Could not update your display name." });
+  }
+
+  const { error: authError } = await supabase.auth.admin.updateUserById(authResult.user.id, {
+    user_metadata: { ...authResult.user.user_metadata, display_name: displayName },
+  });
+  if (authError) {
+    console.error("Could not update account metadata:", authError.message);
+    return res.status(500).json({ error: "Your profile was updated, but account details could not be synchronized." });
+  }
+
+  res.json({ display_name: displayName });
+});
+
+app.delete("/api/account", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+
+  const authResult = await getAuthenticatedUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  const confirmation = typeof req.body?.confirm_username === "string"
+    ? normalizeUsername(req.body.confirm_username)
+    : "";
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("username")
+    .eq("id", authResult.user.id)
+    .maybeSingle();
+  if (profileError || !profile) {
+    console.error("Could not verify account deletion:", profileError?.message || "Profile not found.");
+    return res.status(500).json({ error: "Could not verify your account. Please try again." });
+  }
+  if (!confirmation || confirmation !== normalizeUsername(profile.username)) {
+    return res.status(400).json({ error: "The username confirmation does not match." });
+  }
+
+  const { error: deleteError } = await supabase.auth.admin.deleteUser(authResult.user.id);
+  if (deleteError) {
+    console.error("Could not delete account:", deleteError.message);
+    return res.status(500).json({ error: "Could not delete your account. Please try again." });
+  }
+
+  res.json({ deleted: true });
 });
 
 app.get("/api/session/code", async (req, res) => {
@@ -676,6 +740,8 @@ app.get("/api/games/:slug/download", async (req, res) => {
 });
 
 app.use("/api", (_req, res) => res.status(404).json({ error: "API endpoint not found." }));
+
+app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, "public", "404.html")));
 
 app.listen(port, () => {
   console.log(`Onyx Games is running at http://localhost:${port}`);

@@ -65,6 +65,8 @@ function setAuthMode(mode) {
   const isSignup = mode === "signup";
   signupFields.hidden = !isSignup;
   signupFields.querySelectorAll("input").forEach((input) => { input.required = isSignup; });
+  const signupConsent = signupFields.querySelector("[data-device-signup-consent]");
+  if (signupConsent) signupConsent.required = isSignup;
   emailForm.elements.password.autocomplete = isSignup ? "new-password" : "current-password";
   submitButton.textContent = isSignup ? "Create account" : "Log in";
   toggleButton.textContent = isSignup ? "Already have an account? Log in" : "Create an account";
@@ -86,6 +88,12 @@ async function initialize() {
 
   document.querySelector("[data-device-google]").addEventListener("click", async (event) => {
     const button = event.currentTarget;
+    const consent = document.querySelector("[data-device-google-consent]");
+    if (!consent?.checked) {
+      setMessage(message, "Please agree to the Terms of Service and Privacy Policy before continuing.", true);
+      consent?.focus();
+      return;
+    }
     button.disabled = true;
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -107,6 +115,10 @@ async function initialize() {
     const formData = new FormData(emailForm);
     const email = String(formData.get("email")).trim();
     const password = String(formData.get("password"));
+    if (authMode === "signup" && !emailForm.querySelector("[data-device-signup-consent]")?.checked) {
+      setMessage(message, "Confirm that you are 13 or older and agree to the Terms of Service and Privacy Policy.", true);
+      return;
+    }
     setPending(true);
     try {
       if (authMode === "signup") {

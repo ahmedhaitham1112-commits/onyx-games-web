@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#09070f">
+    <title>Account Settings | Onyx Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/onyx-logo.png">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/settings.js"></script>
+  </head>
+  <body>
+    <header class="site-header"><a class="wordmark" href="/" aria-label="Onyx Games home"><img class="mark" src="/onyx-logo.png" alt=""> ONYX<span class="wordmark-light">GAMES</span></a><nav aria-label="Main navigation"><a class="nav-link" href="/">Home</a><a class="nav-link" href="/library.html">Library</a></nav><span></span></header>
+    <main class="content-main settings-main" data-account-settings>
+      <header class="page-heading"><p class="eyebrow">YOUR ONYX ACCOUNT</p><h1>Account settings</h1><p>Last updated: October 12, 2026</p></header>
+      <p class="settings-status" data-settings-status role="status" aria-live="polite">Loading your account…</p>
+      <section class="settings-section" aria-labelledby="profile-heading" hidden data-settings-content>
+        <div class="settings-section-heading"><p class="eyebrow">PROFILE</p><h2 id="profile-heading">Your details</h2></div>
+        <p class="account-email"><span>Email</span><strong data-account-email></strong></p>
+        <p class="account-username"><span>Username</span><strong data-account-username></strong></p>
+        <form class="settings-form" data-display-name-form>
+          <label for="display-name">Display name</label>
+          <input id="display-name" name="display_name" type="text" maxlength="80" required>
+          <button class="button button-dark" type="submit">Save display name</button>
+        </form>
+        <button class="button button-light settings-sign-out" type="button" data-settings-sign-out>Sign out</button>
+      </section>
+      <section class="settings-section danger-zone" aria-labelledby="delete-heading" hidden data-settings-content>
+        <div class="settings-section-heading"><p class="eyebrow">PERMANENT ACTION</p><h2 id="delete-heading">Delete your account</h2></div>
+        <p>This permanently deletes your account, profile, scores, sign-in sessions, device links, and game-library records. You will lose access to your account and cannot undo this action. Type your username below to confirm.</p>
+        <form class="settings-form delete-form" data-delete-account-form>
+          <label for="confirm-username">Type <strong data-confirm-username></strong> to confirm</label>
+          <input id="confirm-username" name="confirm_username" type="text" autocomplete="off" required>
+          <button class="button button-danger" type="submit">Delete my account</button>
+        </form>
+      </section>
+    </main>
+    <footer class="site-footer"><div class="footer-brand"><a class="wordmark footer-mark" href="/">ONYX<span class="wordmark-light">GAMES</span></a><span>Made for the curious.</span></div><nav class="footer-links" aria-label="Footer"><a href="/about.html">About</a><a href="/contact.html">Contact</a><a href="/rules.html">Community rules</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/cookies.html">Cookies</a><a href="/account.html">Account settings</a></nav><span class="footer-year">© <span data-year></span> ONYX GAMES</span></footer>
+    <script type="module" src="/site.js"></script>
+  </body>
+</html>
