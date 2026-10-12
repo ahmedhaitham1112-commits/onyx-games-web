@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { initializeHeroIntro } from "./hero-intro.js";
+import { initializeHeroIntro } from "./hero-intro.js?v=20261013";
 
 const accountSlot = document.querySelector("[data-account]");
 const gameCodePanel = document.querySelector("[data-game-code]");

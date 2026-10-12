@@ -31,11 +31,14 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname, "public"), {
-  maxAge: "1d",
+  maxAge: "1y",
+  immutable: true,
   etag: true,
   lastModified: true,
   setHeaders(res, filePath) {
-    if (path.extname(filePath) === ".html") res.setHeader("Cache-Control", "no-cache");
+    const extension = path.extname(filePath).toLowerCase();
+    if ([".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".eot"].includes(extension)) return;
+    res.setHeader("Cache-Control", "no-cache");
   },
 }));
 

@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL } from "./site-config.js";
+import { CONTACT_EMAIL } from "./site-config.js?v=20261013";
 
 document.querySelectorAll("[data-year]").forEach((element) => {
   element.textContent = new Date().getFullYear();
