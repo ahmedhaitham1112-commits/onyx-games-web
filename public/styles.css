@@ -31,6 +31,8 @@ button { font: inherit; }
 .account-label, .footer-year, .art-index, .art-coordinate, .game-number, .game-art-caption, .library-list-head { font: 10px var(--mono); letter-spacing: 0; }
 .account-label { color: var(--muted); }
 .account-name { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.wallet-balance { min-height: 30px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #a881ff45; border-radius: 3px; background: #1a1128; color: #e4d3ff; font: 11px var(--mono); }
+.wallet-balance img { width: 19px; height: 19px; display: block; filter: drop-shadow(0 0 5px #a881ff88); }
 .sign-out { padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; }
 .hero { display: grid; grid-template-columns: 1fr 0.91fr; min-height: 514px; padding: 62px 7.1% 58px; gap: 5.5%; align-items: center; }
 .hero-copy { padding: 12px 0 0; }
@@ -110,6 +112,7 @@ h1, h2, p { margin-top: 0; }
 .game-card-copy { padding: 17px 17px 15px; }
 .game-card-copy .eyebrow { font-size: 9px; }
 .game-card-copy h2 { min-height: 24px; margin: 6px 0 17px; font-size: 16px; line-height: 1.35; }
+.game-card-copy .quest-next { min-height: 18px; margin: -10px 0 13px; color: #c7b5df; font-size: 10px; line-height: 1.5; }
 .download-actions { display: flex; gap: 7px; flex-wrap: wrap; }
 .download-link, .download-unavailable { min-height: 31px; padding: 0 9px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 2px; font: 9px var(--mono); }
 .download-link { border-color: var(--ink); }
@@ -117,6 +120,34 @@ h1, h2, p { margin-top: 0; }
 .download-unavailable { color: #969990; }
 .loading-line, .empty-state { padding: 28px 0; color: var(--muted); font-size: 12px; }
 .loading-dots { color: var(--coral); animation: blink 1s steps(2, start) infinite; }
+.game-quests { padding: 0 17px 17px; }
+.quest-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.quest-panel-head .eyebrow { font-size: 9px; }
+.quest-count { color: #bda2e2; font: 10px var(--mono); }
+.quest-track { display: grid; grid-template-columns: repeat(var(--quest-count, 3), minmax(0, 1fr)); gap: 4px; margin-bottom: 12px; }
+.quest-segment { height: 4px; border-radius: 5px; background: #393144; }
+.quest-segment.is-complete { background: linear-gradient(90deg, #8750d1, #d1a8ff); box-shadow: 0 0 9px #a86bff75; }
+.quest-list { margin: 0; padding: 0; display: grid; gap: 8px; list-style: none; }
+.quest-row { display: grid; grid-template-columns: 15px minmax(0, 1fr); align-items: start; gap: 8px; color: #e9e0f3; }
+.quest-check { width: 15px; height: 15px; display: grid; place-items: center; border: 1px solid #51445f; border-radius: 50%; color: #dfc7ff; font-size: 9px; }
+.quest-row.is-complete .quest-check { border-color: #a881ff; background: #6e43a8; }
+.quest-row strong { display: block; font-size: 10px; font-weight: 600; line-height: 1.4; }
+.quest-row small { display: block; margin-top: 2px; color: #9d93a9; font-size: 9px; line-height: 1.4; }
+.quest-rewards { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 7px; margin-top: 13px; padding-top: 11px; border-top: 1px solid #c6a8ff1c; }
+.quest-reward { min-width: 0; min-height: 63px; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 1px solid #453c50; border-radius: 3px; background: #100d16; text-align: center; transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease; }
+.reward-mark { color: #77707e; font: 700 17px var(--sans); line-height: 1; }
+.reward-copy { color: #81788b; font: 8px var(--mono); }
+.quest-reward.is-claimable { border-color: #a881ff; background: #211630; box-shadow: 0 0 16px #a15bff21; }
+.quest-reward.is-claimable .reward-mark { color: #e3caff; text-shadow: 0 0 12px #bf8cff; }
+.quest-reward.is-grand-prize.is-claimable .reward-mark { font-size: 14px; }
+.quest-reward.is-claimed { border-color: #815cac; background: #1e152b; }
+.quest-reward.is-claimed .reward-mark { color: #d2b0ff; }
+.quest-claim { min-height: 25px; margin-top: 3px; padding: 0 9px; border: 1px solid #a881ff; border-radius: 2px; background: #7848b8; color: white; cursor: pointer; font-size: 9px; font-weight: 700; }
+.quest-claim:hover { background: #925bd3; box-shadow: 0 0 12px #a15bff50; }
+.quest-claim:disabled { cursor: wait; opacity: .65; }
+.quest-reward.is-claiming { animation: shard-claim 500ms cubic-bezier(.2,.8,.25,1) both; }
+.quest-signin-prompt { margin: 10px 0 0; color: #b6a8c8; font-size: 9px; line-height: 1.5; }
+@keyframes shard-claim { 35% { transform: translateY(-5px) scale(1.04); box-shadow: 0 0 28px #bb85ff99; } 100% { transform: translateY(0) scale(1); } }
 .library-main { padding: 59px 7.1% 70px; }
 .library-intro { min-height: 280px; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
 .library-intro h1 { margin: 19px 0 32px; font-size: 71px; }

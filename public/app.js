@@ -33,6 +33,18 @@ async function loadGames(accessToken = currentAccessToken) {
     if (!response.ok) throw new Error("Game library is unavailable.");
     const games = await response.json();
     if (requestSequence !== gamesLoadSequence) return;
+    const questDataBySlug = new Map();
+    await Promise.all(games.map(async (game) => {
+      try {
+        const questResponse = await fetch(`/api/quests/${encodeURIComponent(game.slug)}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+        if (questResponse.ok) questDataBySlug.set(game.slug, await questResponse.json());
+      } catch {
+        // Quest availability should not block the game library.
+      }
+    }));
+    if (requestSequence !== gamesLoadSequence) return;
     const count = document.querySelector("[data-game-count]");
     if (count) count.textContent = `${String(games.length).padStart(2, "0")} TITLES`;
     containers.forEach((container) => {
@@ -40,13 +52,20 @@ async function loadGames(accessToken = currentAccessToken) {
         container.innerHTML = '<p class="empty-state">No games are available yet.</p>';
         return;
       }
-      container.innerHTML = games.map((game, index) => `
+      const includeQuests = container.hasAttribute("data-games");
+      container.innerHTML = games.map((game, index) => {
+        const quests = questDataBySlug.get(game.slug);
+        const nextQuest = quests?.quests.find((quest) => !quest.completed);
+        return `
         <article class="game-card">
           <div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>
           <div class="game-card-copy"><div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>
+            ${includeQuests && quests ? `<p class="quest-next">${nextQuest ? escapeHtml(nextQuest.title) : "All quests complete. Nicely done."}</p>` : ""}
             ${gameDownloadOptions(game, visitorPlatform)}
           </div>
-        </article>`).join("");
+          ${includeQuests && quests ? `<div class="game-quests" data-quest-panel data-game-slug="${escapeHtml(game.slug)}">${renderQuestPanel(quests, Boolean(accessToken))}</div>` : ""}
+        </article>`;
+      }).join("");
     });
   } catch (error) {
     if (requestSequence !== gamesLoadSequence) return;
@@ -55,6 +74,90 @@ async function loadGames(accessToken = currentAccessToken) {
     });
   }
 }
+
+function renderQuestPanel(data, isLoggedIn) {
+  const completedCount = data.quests.filter((quest) => quest.completed).length;
+  const segments = data.quests.map((quest) => `<span class="quest-segment${quest.completed ? " is-complete" : ""}" aria-label="${escapeHtml(quest.title)}${quest.completed ? ": complete" : ": incomplete"}"></span>`).join("");
+  const questList = data.quests.map((quest) => `
+    <li class="quest-row${quest.completed ? " is-complete" : ""}">
+      <span class="quest-check" aria-hidden="true">${quest.completed ? "✓" : ""}</span>
+      <span><strong>${escapeHtml(quest.title)}</strong><small>${escapeHtml(quest.description)}</small></span>
+    </li>`).join("");
+  const rewards = data.reward_nodes.map((node) => {
+    const isGrandPrize = node.quests_required >= data.quests.length;
+    const mysteryMark = isGrandPrize ? "???" : "?";
+    const mark = node.claimed ? "✓" : node.is_mystery ? mysteryMark : String(node.node_index);
+    const rewardCopy = node.claimed ? `${node.shards} SHARDS` : `${node.quests_required} QUESTS`;
+    const claimButton = node.claimable
+      ? `<button class="quest-claim" type="button" data-quest-claim data-node-index="${node.node_index}">Claim</button>`
+      : "";
+    return `<div class="quest-reward${node.claimable ? " is-claimable" : " is-locked"}${node.claimed ? " is-claimed" : ""}${isGrandPrize ? " is-grand-prize" : ""}">
+      <span class="reward-mark" aria-hidden="true">${mark}</span><span class="reward-copy">${escapeHtml(rewardCopy)}</span>${claimButton}
+    </div>`;
+  }).join("");
+
+  return `<div class="quest-panel-head"><span class="eyebrow">QUESTS</span><span class="quest-count">${completedCount}/${data.quests.length}</span></div>
+    <div class="quest-track" style="--quest-count:${Math.max(1, data.quests.length)}" role="img" aria-label="${completedCount} of ${data.quests.length} quests complete">${segments}</div>
+    <ol class="quest-list">${questList}</ol>
+    <div class="quest-rewards">${rewards}</div>
+    ${isLoggedIn ? "" : '<p class="quest-signin-prompt">Sign in to track progress and earn shards.</p>'}`;
+}
+
+async function refreshQuestPanels() {
+  const panels = [...document.querySelectorAll("[data-quest-panel]")];
+  await Promise.all(panels.map(async (panel) => {
+    try {
+      const response = await fetch(`/api/quests/${encodeURIComponent(panel.dataset.gameSlug)}`, {
+        headers: currentAccessToken ? { Authorization: `Bearer ${currentAccessToken}` } : {},
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      panel.innerHTML = renderQuestPanel(data, Boolean(currentAccessToken));
+      const nextQuest = data.quests.find((quest) => !quest.completed);
+      const summary = panel.closest(".game-card")?.querySelector(".quest-next");
+      if (summary) summary.textContent = nextQuest?.title || "All quests complete. Nicely done.";
+    } catch {
+      // The last successfully rendered progress remains visible while offline.
+    }
+  }));
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") void refreshQuestPanels();
+});
+window.addEventListener("focus", () => void refreshQuestPanels());
+window.setInterval(() => {
+  if (document.visibilityState === "visible") void refreshQuestPanels();
+}, 20_000);
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-quest-claim]");
+  if (!button || button.disabled) return;
+  if (!currentAccessToken) {
+    toastMessage("Sign in to claim shard rewards.");
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const panel = button.closest("[data-quest-panel]");
+    const response = await fetch(`/api/quests/${encodeURIComponent(panel.dataset.gameSlug)}/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentAccessToken}` },
+      body: JSON.stringify({ node_index: Number(button.dataset.nodeIndex) }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not claim this reward.");
+    window.dispatchEvent(new CustomEvent("onyx:wallet-updated", { detail: { balance: result.balance } }));
+    const reward = button.closest(".quest-reward");
+    reward?.classList.add("is-claiming");
+    toastMessage(result.claimed ? `You claimed ${result.shards} shards.` : "This reward was already claimed.");
+    window.setTimeout(() => void refreshQuestPanels(), 520);
+  } catch (error) {
+    toastMessage(error.message || "Could not claim this reward.");
+    button.disabled = false;
+  }
+});
 
 function gameActionButton(game) {
   const action = game.owned ? "download" : "get";
@@ -427,6 +530,8 @@ function renderGameCode(code) {
 }
 
 function renderAuthState(user, supabase) {
+  if (!user) currentAccessToken = "";
+  window.dispatchEvent(new CustomEvent("onyx:auth-change", { detail: { accessToken: currentAccessToken } }));
   if (document.body.classList.contains("home-page")) {
     document.body.classList.toggle("auth-required", !user);
     document.querySelector(".hero")?.setAttribute("aria-labelledby", user ? "hero-title" : "auth-heading");
@@ -437,7 +542,6 @@ function renderAuthState(user, supabase) {
   });
   if (!accountSlot) return;
   if (!user) {
-    currentAccessToken = "";
     accountSlot.innerHTML = '<span class="account-label">PLAYER 01</span>';
     renderGameCode(null);
     return;

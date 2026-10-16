@@ -20,6 +20,7 @@ const sessionCodeLifetimeMs = 5 * 60 * 1000;
 const deviceLinkLifetimeMs = 10 * 60 * 1000;
 const gameSessionLifetimeMs = 90 * 24 * 60 * 60 * 1000;
 const devicePollRateLimits = new Map();
+const questClaimRateLimits = new Map();
 
 app.use(express.json({ limit: "32kb" }));
 app.use((req, res, next) => {
@@ -172,6 +173,83 @@ function takeDevicePollRateLimit(key) {
   return entry.count <= 120;
 }
 
+function takeQuestClaimRateLimit(key) {
+  const now = Date.now();
+  let entry = questClaimRateLimits.get(key);
+  if (!entry || now - entry.startedAt >= 60_000) {
+    entry = { startedAt: now, count: 0 };
+    questClaimRateLimits.set(key, entry);
+  }
+  entry.count += 1;
+  if (questClaimRateLimits.size > 10_000) {
+    for (const [rateKey, rateEntry] of questClaimRateLimits) {
+      if (now - rateEntry.startedAt >= 60_000) questClaimRateLimits.delete(rateKey);
+    }
+  }
+  return entry.count <= 12;
+}
+
+async function getGameBySlug(gameSlug) {
+  const { data, error } = await supabase
+    .from("games")
+    .select("id, slug")
+    .eq("slug", gameSlug)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function recordQuestProgress(userId, gameId, includeGameSignin = false) {
+  const { data: quests, error: questError } = await supabase
+    .from("quests")
+    .select("id, title, position, metric, target")
+    .eq("game_id", gameId)
+    .order("position");
+  if (questError) throw questError;
+
+  const scoreQuests = quests.filter((quest) => quest.metric === "score");
+  let lifetimeScore = null;
+  if (scoreQuests.length) {
+    const { data: score, error: scoreError } = await supabase
+      .from("scores")
+      .select("score")
+      .eq("user_id", userId)
+      .eq("game_id", gameId)
+      .maybeSingle();
+    if (scoreError) throw scoreError;
+    lifetimeScore = score?.score ?? null;
+  }
+
+  const eligible = quests.filter((quest) => (
+    (quest.metric === "game_signin" && includeGameSignin)
+    || (quest.metric === "score" && lifetimeScore !== null && Number(lifetimeScore) >= Number(quest.target))
+  ));
+  if (!eligible.length) return [];
+
+  const { data: inserted, error: completionError } = await supabase
+    .from("quest_completions")
+    .upsert(eligible.map((quest) => ({ user_id: userId, quest_id: quest.id })), {
+      onConflict: "user_id,quest_id",
+      ignoreDuplicates: true,
+    })
+    .select("quest_id");
+  if (completionError) throw completionError;
+
+  const newlyCompletedIds = new Set((inserted || []).map((completion) => completion.quest_id));
+  return eligible
+    .filter((quest) => newlyCompletedIds.has(quest.id))
+    .map(({ id, title, position }) => ({ id, title, position }));
+}
+
+function logQuestError(action, error) {
+  console.error(`Quest ${action} failed:`, {
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+  });
+}
+
 app.get("/api/config", (_req, res) => {
   res.json({
     supabaseUrl: supabaseUrl || null,
@@ -257,9 +335,15 @@ app.post("/api/login", async (req, res) => {
   res.json({ session_token: req.body.access_token, user: profile });
 });
 
-app.post("/api/device/start", withDeviceLinkErrorLogging("start", "Could not start device sign-in.", async (_req, res) => {
+app.post("/api/device/start", withDeviceLinkErrorLogging("start", "Could not start device sign-in.", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
+
+  const gameSlug = typeof req.body?.game_slug === "string" && req.body.game_slug.trim()
+    ? req.body.game_slug.trim()
+    : "stare-at-a-guy-simulator";
+  const game = await getGameBySlug(gameSlug);
+  if (!game) return res.status(404).json({ error: "Game not found." });
 
   const expiresAt = new Date(Date.now() + deviceLinkLifetimeMs).toISOString();
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -268,6 +352,7 @@ app.post("/api/device/start", withDeviceLinkErrorLogging("start", "Could not sta
     const { error } = await supabase.from("device_links").insert({
       device_code_hash: hashSessionCode(deviceCode),
       user_code: userCode,
+      game_id: game.id,
       status: "pending",
       expires_at: expiresAt,
     });
@@ -310,9 +395,22 @@ app.post("/api/device/poll", withDeviceLinkErrorLogging("poll", "Could not check
   if (!result || !["pending", "expired", "denied", "approved"].includes(result.status)) {
     return res.status(500).json({ error: "Could not check device sign-in." });
   }
-  res.json(result.status === "approved"
-    ? { status: "approved", session_token: result.session_token, expires_in: gameSessionLifetimeMs / 1000 }
-    : { status: result.status });
+  if (result.status !== "approved") return res.json({ status: result.status });
+
+  const { data: notification, error: notificationError } = await supabase
+    .from("device_links")
+    .update({ newly_completed_quests: null })
+    .eq("device_code_hash", deviceCodeHash)
+    .not("newly_completed_quests", "is", null)
+    .select("newly_completed_quests")
+    .maybeSingle();
+  if (notificationError) throw notificationError;
+  res.json({
+    status: "approved",
+    session_token: result.session_token,
+    expires_in: gameSessionLifetimeMs / 1000,
+    newly_completed_quests: notification?.newly_completed_quests || [],
+  });
 }));
 
 app.post("/api/device/approve", withDeviceLinkErrorLogging("approve", "Could not approve device sign-in.", async (req, res) => {
@@ -325,19 +423,15 @@ app.post("/api/device/approve", withDeviceLinkErrorLogging("approve", "Could not
   if (!/^[2-9A-HJ-NP-Z]{8}$/.test(userCode)) {
     return res.status(400).json({ error: "A valid user_code is required." });
   }
-  const { data, error } = await supabase
-    .from("device_links")
-    .update({ status: "approved", user_id: authResult.user.id })
-    .eq("user_code", userCode)
-    .eq("status", "pending")
-    .gt("expires_at", new Date().toISOString())
-    .select("user_code")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("approve_device_link", {
+    p_user_code: userCode,
+    p_user_id: authResult.user.id,
+  });
   if (error) {
     logDeviceLinkError("approve", error);
     return res.status(500).json({ error: "Could not approve device sign-in." });
   }
-  if (!data) return res.status(409).json({ error: "This device link has expired or is no longer pending." });
+  if (!Array.isArray(data) || !data.length) return res.status(409).json({ error: "This device link has expired or is no longer pending." });
   res.json({ approved: true });
 }));
 
@@ -572,13 +666,11 @@ app.post("/api/scores/submit", async (req, res) => {
     return res.status(400).json({ error: "Score must be a non-negative number." });
   }
 
-  const { data: game, error: gameError } = await supabase
-    .from("games")
-    .select("id")
-    .eq("slug", gameSlug.trim())
-    .maybeSingle();
-  if (gameError) {
-    console.error("Could not look up game:", gameError.message);
+  let game;
+  try {
+    game = await getGameBySlug(gameSlug.trim());
+  } catch (error) {
+    console.error("Could not look up game:", error.message);
     return res.status(500).json({ error: "Could not look up the game." });
   }
   if (!game) return res.status(404).json({ error: "Game not found." });
@@ -600,7 +692,142 @@ app.post("/api/scores/submit", async (req, res) => {
     return res.status(500).json({ error: "Could not save the score." });
   }
 
-  res.json(data);
+  try {
+    const newlyCompletedQuests = await recordQuestProgress(result.user.id, game.id);
+    res.json({ ...data, newly_completed_quests: newlyCompletedQuests });
+  } catch (error) {
+    logQuestError("progress", error);
+    res.status(500).json({ error: "The score was saved, but quest progress could not be updated." });
+  }
+});
+
+app.get("/api/quests/:gameSlug", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+
+  let game;
+  try {
+    game = await getGameBySlug(req.params.gameSlug);
+  } catch (error) {
+    logQuestError("lookup", error);
+    return res.status(500).json({ error: "Could not load quests." });
+  }
+  if (!game) return res.status(404).json({ error: "Game not found." });
+
+  const bearerToken = getBearerToken(req);
+  let userId = null;
+  if (bearerToken) {
+    const authResult = await getSessionUser(bearerToken);
+    if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+    userId = authResult.user.id;
+  }
+
+  try {
+    if (userId) await recordQuestProgress(userId, game.id);
+    const [{ data: quests, error: questError }, { data: rewardNodes, error: rewardsError }] = await Promise.all([
+      supabase.from("quests").select("id, position, title, description, metric, target").eq("game_id", game.id).order("position"),
+      supabase.from("reward_nodes").select("game_id, node_index, quests_required, shards, is_mystery").eq("game_id", game.id).order("node_index"),
+    ]);
+    if (questError) throw questError;
+    if (rewardsError) throw rewardsError;
+
+    let completedIds = [];
+    let claimedNodes = [];
+    if (userId) {
+      const completionsQuery = quests.length
+        ? supabase.from("quest_completions").select("quest_id").eq("user_id", userId).in("quest_id", quests.map((quest) => quest.id))
+        : Promise.resolve({ data: [], error: null });
+      const [{ data: completions, error: completionError }, { data: claims, error: claimError }] = await Promise.all([
+        completionsQuery,
+        supabase.from("reward_claims").select("node_index").eq("user_id", userId).eq("game_id", game.id),
+      ]);
+      if (completionError) throw completionError;
+      if (claimError) throw claimError;
+      completedIds = completions.map((completion) => completion.quest_id);
+      claimedNodes = claims.map((claim) => claim.node_index);
+    }
+
+    const completedSet = new Set(completedIds);
+    const claimedSet = new Set(claimedNodes);
+    const completedCount = completedSet.size;
+    res.json({
+      game_slug: game.slug,
+      quests: quests.map((quest) => ({ ...quest, completed: completedSet.has(quest.id) })),
+      reward_nodes: rewardNodes.map((node) => ({
+        node_index: node.node_index,
+        quests_required: node.quests_required,
+        is_mystery: node.is_mystery,
+        claimed: claimedSet.has(node.node_index),
+        claimable: Boolean(userId) && !claimedSet.has(node.node_index) && completedCount >= node.quests_required,
+        ...(claimedSet.has(node.node_index) ? { shards: node.shards } : {}),
+      })),
+      progress: userId ? { completed_quest_ids: completedIds, claimed_nodes: claimedNodes } : null,
+    });
+  } catch (error) {
+    logQuestError("load", error);
+    res.status(500).json({ error: "Could not load quests." });
+  }
+});
+
+app.post("/api/quests/:gameSlug/claim", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+  const authResult = await getSessionUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+  if (!takeQuestClaimRateLimit(authResult.user.id)) {
+    res.set("Retry-After", "60");
+    return res.status(429).json({ error: "Reward claims are temporarily rate limited." });
+  }
+
+  const nodeIndex = req.body?.node_index;
+  if (!Number.isSafeInteger(nodeIndex) || nodeIndex < 1) {
+    return res.status(400).json({ error: "A valid node_index is required." });
+  }
+  let game;
+  try {
+    game = await getGameBySlug(req.params.gameSlug);
+  } catch (error) {
+    logQuestError("lookup", error);
+    return res.status(500).json({ error: "Could not look up the game." });
+  }
+  if (!game) return res.status(404).json({ error: "Game not found." });
+
+  try {
+    await recordQuestProgress(authResult.user.id, game.id);
+  } catch (error) {
+    logQuestError("progress", error);
+    return res.status(500).json({ error: "Could not verify quest progress." });
+  }
+
+  const { data, error } = await supabase.rpc("claim_quest_reward", {
+    p_user_id: authResult.user.id,
+    p_game_id: game.id,
+    p_node_index: nodeIndex,
+  });
+  if (error) {
+    if (error.code === "P0001") return res.status(409).json({ error: error.message });
+    logQuestError("claim", error);
+    return res.status(500).json({ error: "Could not claim this reward." });
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  res.json({ claimed: result.claimed, shards: result.shards, balance: result.balance });
+});
+
+app.get("/api/wallet", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+  const authResult = await getSessionUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+  const { data, error } = await supabase
+    .from("shard_wallets")
+    .select("balance")
+    .eq("user_id", authResult.user.id)
+    .maybeSingle();
+  if (error) {
+    logQuestError("wallet", error);
+    return res.status(500).json({ error: "Could not load your shard balance." });
+  }
+  res.json({ balance: data?.balance || 0 });
 });
 
 app.get("/api/scores/leaderboard", async (req, res) => {
