@@ -8,6 +8,16 @@ const googleConsentPendingKey = "onyx-google-consent-pending";
 const authPanel = document.querySelector("[data-auth-panel]");
 const emailAuthForm = document.querySelector("[data-email-auth]");
 const toast = document.querySelector("[data-toast]");
+const librarySearch = document.querySelector("[data-library-search]");
+const libraryListView = document.querySelector("[data-library-list-view]");
+const libraryDetailPanel = document.querySelector("[data-library-detail]");
+const libraryState = {
+  games: [],
+  questsBySlug: new Map(),
+  filter: "all",
+  search: "",
+  selectedSlug: "",
+};
 let initialAuthResolved = false;
 let currentAccessToken = "";
 let gamesLoadSequence = 0;
@@ -68,11 +78,15 @@ async function loadGames(accessToken = currentAccessToken) {
     const count = document.querySelector("[data-game-count]");
     if (count) count.textContent = `${String(games.length).padStart(2, "0")} TITLES`;
     containers.forEach((container) => {
+      if (container.matches("[data-games]")) {
+        renderLibraryGames(games, questDataBySlug);
+        return;
+      }
       if (!games.length) {
         container.innerHTML = '<p class="empty-state">No games are available yet.</p>';
         return;
       }
-      const includeQuests = container.hasAttribute("data-games");
+      const includeQuests = false;
       container.innerHTML = games.map((game, index) => {
         const quests = questDataBySlug.get(game.slug);
         const homeDescription = "Hold your gaze, build your score, and see how long you can keep staring.";
@@ -97,6 +111,132 @@ async function loadGames(accessToken = currentAccessToken) {
     });
   }
 }
+
+function renderLibraryGames(games, questsBySlug) {
+  if (!document.querySelector("[data-games]")) return;
+  libraryState.games = games.filter((game) => game.owned || game.downloaded);
+  libraryState.questsBySlug = questsBySlug;
+  const allCount = document.querySelector("[data-library-all-count]");
+  const downloadedCount = document.querySelector("[data-library-downloaded-count]");
+  if (allCount) allCount.textContent = String(libraryState.games.length);
+  if (downloadedCount) downloadedCount.textContent = String(libraryState.games.filter((game) => game.installed || game.downloaded).length);
+
+  const searchTerm = libraryState.search.trim().toLocaleLowerCase();
+  const filteredGames = libraryState.games.filter((game) => {
+    const matchesFilter = libraryState.filter === "all" || game.installed || game.downloaded;
+    return matchesFilter && `${game.name} ${game.slug}`.toLocaleLowerCase().includes(searchTerm);
+  });
+  const title = document.querySelector("[data-library-list-title]");
+  const count = document.querySelector("[data-game-count]");
+  if (title) title.textContent = libraryState.filter === "all" ? "ALL GAMES" : "INSTALLED / DOWNLOADED";
+  if (count) count.textContent = `${filteredGames.length} ${filteredGames.length === 1 ? "GAME" : "GAMES"}`;
+
+  const container = document.querySelector("[data-games]");
+  if (!filteredGames.length) {
+    if (!libraryState.games.length) {
+      container.innerHTML = `<div class="library-empty-state"><span class="library-empty-mark" aria-hidden="true">◇</span><h2>Your library is waiting.</h2><p>Games you add or download will be kept here, ready for your next session.</p><a class="button button-dark" href="/">Browse games <span aria-hidden="true">↗</span></a></div>`;
+    } else {
+      container.innerHTML = `<div class="library-empty-state"><h2>No games found.</h2><p>Try another search or filter.</p><button class="library-clear-search" type="button" data-library-clear-search>Clear search and filters</button></div>`;
+    }
+  } else {
+    container.innerHTML = filteredGames.map((game, index) => `
+      <button class="library-game-tile${game.downloaded ? " is-downloaded" : ""}" type="button" data-library-open="${escapeHtml(game.slug)}" aria-label="Open ${escapeHtml(game.name)}">
+        <span class="library-cover-art game-art game-art-${index % 3}" aria-hidden="true">
+          <span class="library-cover-index">${String(index + 1).padStart(2, "0")}</span>
+          <span class="library-cover-eye game-eye"><i></i></span>
+          <span class="library-cover-caption">ONYX ORIGINAL</span>
+          ${game.downloaded ? '<span class="library-owned-badge">IN YOUR LIBRARY</span>' : ""}
+        </span>
+        <span class="library-tile-name">${escapeHtml(game.name)}</span>
+        <span class="library-tile-status">${game.installed ? "Installed" : game.downloaded ? "Downloaded" : "Ready to download"}</span>
+      </button>`).join("");
+  }
+
+  document.querySelectorAll("[data-library-filter]").forEach((button) => {
+    const active = button.dataset.libraryFilter === libraryState.filter;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  if (libraryState.selectedSlug) {
+    const selectedGame = libraryState.games.find((game) => game.slug === libraryState.selectedSlug);
+    if (selectedGame) renderLibraryDetail(selectedGame);
+    else closeLibraryDetail();
+  }
+}
+
+function renderLibraryDetail(game) {
+  if (!libraryDetailPanel || !libraryListView) return;
+  libraryState.selectedSlug = game.slug;
+  libraryListView.hidden = true;
+  libraryDetailPanel.hidden = false;
+  const index = libraryState.games.findIndex((item) => item.slug === game.slug);
+  const status = game.installed
+    ? '<span class="download-status-chip">Installed</span>'
+    : game.downloaded
+      ? '<span class="download-status-chip">Downloaded</span>'
+      : '<span class="download-status-chip">In your library</span>';
+  const downloadDate = game.downloaded_at
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(game.downloaded_at))
+    : "Not downloaded yet";
+  const version = game.version || game.app_version || "Not listed";
+  const fileSize = formatFileSize(game.file_size ?? game.file_size_bytes);
+  const platform = game.download_platform || "Windows PC";
+  const quests = libraryState.questsBySlug.get(game.slug);
+  const downloadGame = { ...game, owned: true, downloaded: true };
+  const questContent = quests
+    ? renderQuestPanel(quests, Boolean(currentAccessToken))
+    : '<div class="library-quest-loading"><span class="wallet-loading-spinner" aria-hidden="true"></span><span>Loading quests…</span></div>';
+  libraryDetailPanel.innerHTML = `
+    <button class="library-back-button" type="button" data-library-back><span aria-hidden="true">←</span> Back to library</button>
+    <section class="library-detail-banner game-art game-art-${Math.max(0, index) % 3}">
+      <span class="library-detail-art-eye game-eye" aria-hidden="true"><i></i></span>
+      <div class="library-detail-title"><p class="eyebrow">ONYX ORIGINAL</p><h1>${escapeHtml(game.name)}</h1></div>
+      <div class="library-detail-status featured-game-status" data-detail-status>${status}</div>
+    </section>
+    <div class="library-detail-actions">
+      ${gameDownloadOptions(downloadGame, visitorPlatform, false).replace('class="game-download-area"', 'class="game-download-area library-detail-download"').replace("Download again for PC", "Download again")}
+      <button class="library-action-button library-uninstall-button" type="button" data-uninstall-open><span aria-hidden="true">×</span> Uninstall</button>
+      <button class="library-action-button" type="button" data-app-info aria-expanded="false"><span aria-hidden="true">i</span> App info</button>
+    </div>
+    <section class="library-app-info" data-app-info-panel hidden aria-label="App information">
+      <h2>App info</h2>
+      <dl>
+        <div><dt>Version</dt><dd>${escapeHtml(version)}</dd></div>
+        <div><dt>File size</dt><dd>${escapeHtml(fileSize)}</dd></div>
+        <div><dt>Download date</dt><dd>${escapeHtml(downloadDate)}</dd></div>
+        <div><dt>Platform</dt><dd>${escapeHtml(platform)}</dd></div>
+      </dl>
+    </section>
+    <section class="library-detail-quests" aria-label="${escapeHtml(game.name)} quests">
+      <div class="library-detail-section-heading"><div><p class="eyebrow">MAKE YOUR NEXT MOVE</p><h2>Quests</h2></div></div>
+      <div class="game-quests" data-quest-panel data-game-slug="${escapeHtml(game.slug)}">${questContent}</div>
+    </section>`;
+}
+
+function formatFileSize(size) {
+  if (typeof size === "number" && Number.isFinite(size) && size > 0) {
+    const units = ["B", "KB", "MB", "GB"];
+    let value = size;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value.toFixed(unitIndex ? 1 : 0)} ${units[unitIndex]}`;
+  }
+  return typeof size === "string" && size.trim() ? size.trim() : "Not listed";
+}
+
+function closeLibraryDetail() {
+  libraryState.selectedSlug = "";
+  if (libraryDetailPanel) libraryDetailPanel.hidden = true;
+  if (libraryListView) libraryListView.hidden = false;
+}
+
+librarySearch?.addEventListener("input", () => {
+  libraryState.search = librarySearch.value;
+  renderLibraryGames(libraryState.games, libraryState.questsBySlug);
+});
 
 function renderQuestPanel(data, isLoggedIn) {
   const completedCount = data.quests.filter((quest) => quest.completed).length;
@@ -284,6 +424,38 @@ function gameDownloadOptions(game, platform, includeStatus = true) {
 }
 
 document.addEventListener("click", async (event) => {
+  const filterButton = event.target.closest("[data-library-filter]");
+  if (filterButton) {
+    libraryState.filter = filterButton.dataset.libraryFilter;
+    renderLibraryGames(libraryState.games, libraryState.questsBySlug);
+    return;
+  }
+  if (event.target.closest("[data-library-clear-search]")) {
+    libraryState.filter = "all";
+    libraryState.search = "";
+    if (librarySearch) librarySearch.value = "";
+    renderLibraryGames(libraryState.games, libraryState.questsBySlug);
+    return;
+  }
+  const openLibraryTile = event.target.closest("[data-library-open]");
+  if (openLibraryTile) {
+    const game = libraryState.games.find((item) => item.slug === openLibraryTile.dataset.libraryOpen);
+    if (game) renderLibraryDetail(game);
+    return;
+  }
+  if (event.target.closest("[data-library-back]")) {
+    closeLibraryDetail();
+    return;
+  }
+  const appInfoButton = event.target.closest("[data-app-info]");
+  if (appInfoButton) {
+    const panel = document.querySelector("[data-app-info-panel]");
+    if (panel) {
+      panel.hidden = !panel.hidden;
+      appInfoButton.setAttribute("aria-expanded", String(!panel.hidden));
+    }
+    return;
+  }
   const uninstallButton = event.target.closest("[data-uninstall-open]");
   if (uninstallButton) {
     document.querySelector("[data-uninstall-dialog]")?.showModal();
@@ -324,6 +496,13 @@ document.addEventListener("click", async (event) => {
       status.className = "download-status-chip";
       status.textContent = "Downloaded";
       statusContainer.append(status);
+    }
+    const downloadedGame = libraryState.games.find((game) => game.slug === button.dataset.gameSlug);
+    if (downloadedGame) {
+      downloadedGame.downloaded = true;
+      downloadedGame.downloaded_at = new Date().toISOString();
+      downloadedGame.download_platform = "Windows PC";
+      renderLibraryGames(libraryState.games, libraryState.questsBySlug);
     }
     window.location.assign(result.url);
   } catch (error) {

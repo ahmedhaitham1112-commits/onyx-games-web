@@ -21,6 +21,9 @@ const deviceLinkLifetimeMs = 10 * 60 * 1000;
 const gameSessionLifetimeMs = 90 * 24 * 60 * 60 * 1000;
 const devicePollRateLimits = new Map();
 const questClaimRateLimits = new Map();
+const gameFileSizes = new Map([
+  ["stare-at-a-guy-simulator", 154521006],
+]);
 
 app.use(express.json({ limit: "32kb" }));
 app.use((req, res, next) => {
@@ -935,7 +938,7 @@ app.get("/api/games", async (req, res) => {
 
   const { data: games, error } = await supabase
     .from("games")
-    .select("id, slug, name, download_url_android")
+    .select("id, slug, name, download_url_pc, download_url_android")
     .order("name", { ascending: true });
   if (error) {
     console.error("Could not load games:", error.message);
@@ -945,6 +948,7 @@ app.get("/api/games", async (req, res) => {
   let ownedGameIds = new Set();
   let installedGameIds = new Set();
   let downloadedGameIds = new Set();
+  const downloadDatesByGameId = new Map();
   if (userId) {
     const [
       { data: purchases, error: purchaseError },
@@ -953,7 +957,7 @@ app.get("/api/games", async (req, res) => {
     ] = await Promise.all([
       supabase.from("purchases").select("game_id").eq("user_id", userId),
       supabase.from("device_links").select("game_id").eq("user_id", userId).eq("status", "approved"),
-      supabase.from("download_events").select("game_id").eq("user_id", userId).eq("allowed", true),
+      supabase.from("download_events").select("game_id, requested_at").eq("user_id", userId).eq("allowed", true).order("requested_at", { ascending: false }),
     ]);
     if (purchaseError) {
       console.error("Could not load game ownership:", purchaseError.message);
@@ -970,14 +974,26 @@ app.get("/api/games", async (req, res) => {
     ownedGameIds = new Set(purchases.map((purchase) => purchase.game_id));
     installedGameIds = new Set(approvedLinks.map((link) => link.game_id));
     downloadedGameIds = new Set(downloadEvents.map((download) => download.game_id));
+    for (const download of downloadEvents) {
+      if (!downloadDatesByGameId.has(download.game_id)) {
+        downloadDatesByGameId.set(download.game_id, download.requested_at);
+      }
+    }
   }
 
-  res.json(games.map(({ id, ...game }) => ({
-    ...game,
-    owned: ownedGameIds.has(id),
-    installed: installedGameIds.has(id),
-    downloaded: downloadedGameIds.has(id),
-  })));
+  res.json(games.map(({ id, download_url_pc: downloadUrl, ...game }) => {
+    const version = downloadUrl?.match(/\/releases\/download\/v?([^/]+)\//)?.[1] || null;
+    return {
+      ...game,
+      version,
+      file_size_bytes: gameFileSizes.get(game.slug) || null,
+      owned: ownedGameIds.has(id),
+      installed: installedGameIds.has(id),
+      downloaded: downloadedGameIds.has(id),
+      downloaded_at: downloadDatesByGameId.get(id) || null,
+      download_platform: downloadedGameIds.has(id) ? "Windows PC" : null,
+    };
+  }));
 });
 
 app.post("/api/games/:slug/purchase", async (req, res) => {

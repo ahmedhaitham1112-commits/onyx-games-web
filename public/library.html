@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/onyx-logo.png">
     <link rel="preload" href="/shard.svg" as="image" type="image/svg+xml">
-    <link rel="stylesheet" href="/styles.css?v=20261024-3">
-    <script type="module" src="/app.js?v=20261024-3"></script>
+    <link rel="stylesheet" href="/styles.css?v=20261024-4">
+    <script type="module" src="/app.js?v=20261024-4"></script>
   </head>
   <body>
     <header class="site-header">
@@ -65,13 +65,37 @@
           document.querySelector("[data-platform-quests]").hidden = false;
         }
       </script>
-      <section class="library-intro">
-        <div><p class="eyebrow"><span class="status-dot"></span> THE ONYX COLLECTION</p><h1>Game<br><span>library.</span></h1></div>
-        <p class="library-description">A growing collection of small, singular ideas. Choose a game and make it yours.</p>
-      </section>
-      <section class="library-list" aria-label="Available games">
-        <div class="library-list-head"><span>AVAILABLE NOW</span><span data-game-count>— TITLES</span></div>
-        <div data-games class="game-grid"><div class="loading-line">Loading games<span class="loading-dots">...</span></div></div>
+      <section class="library-shell" aria-label="Your game library">
+        <aside class="library-sidebar" aria-label="Library filters">
+          <p class="eyebrow">YOUR COLLECTION</p>
+          <label class="library-search">
+            <span class="visually-hidden">Search your games</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+            <input type="search" placeholder="Search games" autocomplete="off" data-library-search>
+          </label>
+          <nav class="library-filters" aria-label="Filter games">
+            <button class="library-filter is-active" type="button" data-library-filter="all" aria-pressed="true"><span>All games</span><span data-library-all-count>0</span></button>
+            <button class="library-filter" type="button" data-library-filter="downloaded" aria-pressed="false"><span>Installed / Downloaded</span><span data-library-downloaded-count>0</span></button>
+          </nav>
+          <a class="library-discover-link" href="/">Discover games <span aria-hidden="true">↗</span></a>
+        </aside>
+        <div class="library-content">
+          <div data-library-list-view>
+            <section class="library-intro">
+              <div><p class="eyebrow"><span class="status-dot"></span> YOUR ONYX COLLECTION</p><h1>My<br><span>library.</span></h1></div>
+              <p class="library-description">Your games, ready when you are. Pick one to see its details and quests.</p>
+            </section>
+            <section class="library-list" aria-label="Games in your library">
+              <div class="library-list-head"><span data-library-list-title>ALL GAMES</span><span data-game-count>LOADING</span></div>
+              <div data-games class="game-grid library-game-grid">
+                <div class="library-skeleton" aria-hidden="true"><span></span><i></i><b></b></div>
+                <div class="library-skeleton" aria-hidden="true"><span></span><i></i><b></b></div>
+                <div class="library-skeleton" aria-hidden="true"><span></span><i></i><b></b></div>
+              </div>
+            </section>
+          </div>
+          <section class="library-detail" data-library-detail hidden aria-live="polite"></section>
+        </div>
       </section>
       <section class="library-signin" data-library-signin>
         <div><p class="eyebrow">YOUR SCORES, YOURS TO KEEP</p><h2>Pick up where you left off.</h2></div>
@@ -91,6 +115,6 @@
         <p>Settings → Apps → Stare at a Guy Simulator → Uninstall</p>
       </div>
     </dialog>
-    <script type="module" src="/site.js?v=20261024-3"></script>
+    <script type="module" src="/site.js?v=20261024-4"></script>
   </body>
 </html>
