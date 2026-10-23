@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { initializeHeroIntro } from "./hero-intro.js?v=20261024";
 
 const accountSlot = document.querySelector("[data-account]");
-const gameCodePanel = document.querySelector("[data-game-code]");
 const platformQuestBar = document.querySelector("[data-platform-quests]");
 const googleConsentRows = document.querySelectorAll("[data-google-consent]");
 const googleConsentPendingKey = "onyx-google-consent-pending";
@@ -83,9 +82,9 @@ async function loadGames(accessToken = currentAccessToken) {
           <div class="game-card-copy">
             ${includeQuests
               ? `<div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>`
-              : `<h2>${escapeHtml(game.name)}</h2><p class="featured-game-description">${escapeHtml(homeDescription)}</p>`}
+              : `<div class="featured-game-heading"><h2>${escapeHtml(game.name)}</h2><span class="featured-game-status">${gameStatus(game)}</span></div><p class="featured-game-description">${escapeHtml(homeDescription)}</p>`}
             ${!includeQuests && quests ? renderQuestPreview(quests) : ""}
-            ${gameDownloadOptions(game, visitorPlatform)}
+            ${gameDownloadOptions(game, visitorPlatform, includeQuests)}
           </div>
           ${includeQuests && quests ? `<div class="game-quests" data-quest-panel data-game-slug="${escapeHtml(game.slug)}">${renderQuestPanel(quests, Boolean(accessToken))}</div>` : ""}
         </article>`;
@@ -131,16 +130,19 @@ function renderPlatformQuestBar(data) {
     const claimable = Boolean(milestone?.claimable);
     const isMystery = required === 10;
     const status = claimed ? "is-claimed" : claimable ? "is-claimable" : "is-locked";
-    const reward = claimed ? `${milestone.shards}` : isMystery ? "???" : "20";
+    const reward = isMystery ? (claimed ? `+${milestone.shards}` : "???") : "+20";
     const indicator = claimed
       ? '<span class="milestone-check" aria-label="Claimed">✓</span>'
       : `<img src="/shard.svg" width="19" height="19" alt="">`;
+    const rewardContent = isMystery
+      ? escapeHtml(reward)
+      : `<img src="/shard.svg" width="16" height="16" alt="">${escapeHtml(reward)}`;
     const claim = claimable
       ? `<button class="platform-claim" type="button" data-platform-claim data-node-index="${nodeIndex}">Claim</button>`
       : "";
     return `<div class="platform-milestone ${status}" style="--milestone-position:${required * 10}%" data-node-index="${nodeIndex}">
+      <span class="milestone-reward">${rewardContent}</span>
       <div class="milestone-pin">${indicator}</div>
-      <span class="milestone-reward">${escapeHtml(reward)}</span>
       <span class="milestone-label">${required}</span>
       ${claim}
     </div>`;
@@ -153,9 +155,11 @@ function renderPlatformQuestBar(data) {
     <div class="platform-quest-badge" aria-label="${completedCount === null ? "Loading quest total" : `${completedCount} quests completed`}"><span>${completedCount === null ? "..." : completedCount}</span></div>
     <div class="platform-quest-content">
       <div class="platform-quest-heading"><p class="eyebrow">DAILY QUESTS</p><span>PLATFORM MILESTONES</span></div>
-      <div class="platform-track" role="img" aria-label="${completedCount === null ? "Loading quests" : `${Math.min(completedCount, 10)} of 10 quests toward milestones`}">
-        <div class="platform-segments">${segments}</div>
-        ${milestones}
+      <div class="platform-track" role="group" aria-label="${completedCount === null ? "Loading quests" : `${Math.min(completedCount, 10)} of 10 quests toward milestones`}">
+        <div class="platform-track-inner">
+          <div class="platform-segments">${segments}</div>
+          ${milestones}
+        </div>
       </div>
       <p class="platform-quest-progress">${completedCount === null ? "Loading..." : `${milestoneProgress} of 10 quests completed`}</p>
     </div>
@@ -247,36 +251,36 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-function gameActionButton(game) {
+function gameStatus(game) {
+  if (game.installed) {
+    return '<span class="download-status-chip" title="A device signed in with this account; the site cannot verify the game remains installed.">Installed</span><button class="download-state-link" type="button" data-uninstall-open>Uninstall</button>';
+  }
+  return game.downloaded
+    ? '<span class="download-status-chip" title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</span>'
+    : "";
+}
+
+function gameActionButton(game, includeStatus = true) {
   const action = game.owned ? "download" : "get";
-  const label = game.downloaded ? "Download again" : game.owned ? "Download" : "Get";
-  const status = game.installed
-    ? '<span class="download-status-chip" title="A device signed in with this account; the site cannot verify the game remains installed.">Installed</span><button class="download-state-link" type="button" data-uninstall-open>How to uninstall</button>'
-    : game.downloaded ? '<span class="download-status-chip" title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</span>' : "";
-  return `<div class="game-actions"><button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">↓</span></button>${status}</div>`;
+  const label = game.downloaded ? "Download again for PC" : game.owned ? "Download for PC" : "Get for PC";
+  return `<div class="game-actions"><button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label}: ${escapeHtml(game.name)}">${label} <span aria-hidden="true">↓</span></button>${includeStatus ? gameStatus(game) : ""}</div>`;
 }
 
 function detectVisitorPlatform() {
-  const platform = navigator.userAgentData?.platform || navigator.userAgent || "";
+  const platform = `${navigator.userAgentData?.platform || ""} ${navigator.userAgent || ""}`;
   if (/windows/i.test(platform)) return "windows";
   if (/android/i.test(platform)) return "android";
   return "unsupported";
 }
 
-function gameDownloadOptions(game, platform) {
-  const pcHidden = platform !== "windows";
-  const androidHidden = platform !== "android";
-  const androidNote = platform === "android" ? "" : " hidden";
-  const unsupportedNote = platform === "unsupported" ? "" : " hidden";
-  return `<div class="game-download-area" data-download-area data-device-platform="${platform}">
-    <div class="download-actions">
-      <div data-platform-option="windows"${pcHidden ? " hidden" : ""}>${gameActionButton(game)}</div>
-      <div data-platform-option="android"${androidHidden ? " hidden" : ""}>${downloadButton(null, "Android", "Android")}</div>
-      <p class="platform-note" data-platform-note="android"${androidNote}>This game's PC version needs a Windows computer. Open Onyx Games on your PC to download it.</p>
-      <p class="platform-note" data-platform-note="unsupported"${unsupportedNote}>This device isn't supported yet. <button class="platform-inline-action" type="button" data-show-anyway>Show anyway</button></p>
-    </div>
-    <button class="platform-toggle" type="button" data-other-platforms aria-expanded="false">Other platforms</button>
-  </div>`;
+function gameDownloadOptions(game, platform, includeStatus = true) {
+  if (platform === "windows") {
+    return `<div class="game-download-area">${gameActionButton(game, includeStatus)}</div>`;
+  }
+  if (platform === "android") {
+    return '<div class="game-download-area"><button class="download-unavailable" type="button" disabled>Android (Coming soon)</button></div>';
+  }
+  return '<div class="game-download-area"><span class="download-unavailable">Not available on this device yet</span></div>';
 }
 
 document.addEventListener("click", async (event) => {
@@ -287,26 +291,6 @@ document.addEventListener("click", async (event) => {
   }
   if (event.target.closest("[data-uninstall-close]")) {
     document.querySelector("[data-uninstall-dialog]")?.close();
-    return;
-  }
-
-  const otherPlatformsButton = event.target.closest("[data-other-platforms]");
-  if (otherPlatformsButton) {
-    const area = otherPlatformsButton.closest("[data-download-area]");
-    const platform = area.dataset.devicePlatform;
-    const otherPlatform = platform === "android" ? "windows" : "android";
-    const option = area.querySelector(`[data-platform-option="${otherPlatform}"]`);
-    const expanded = otherPlatformsButton.getAttribute("aria-expanded") === "true";
-    option.hidden = expanded;
-    otherPlatformsButton.setAttribute("aria-expanded", String(!expanded));
-    return;
-  }
-
-  const showAnywayButton = event.target.closest("[data-show-anyway]");
-  if (showAnywayButton) {
-    const area = showAnywayButton.closest("[data-download-area]");
-    area.querySelector('[data-platform-option="windows"]').hidden = false;
-    showAnywayButton.hidden = true;
     return;
   }
 
@@ -331,14 +315,15 @@ document.addEventListener("click", async (event) => {
       await loadGames();
       return;
     }
-    const actions = button.closest(".game-actions");
-    button.innerHTML = 'Download again <span aria-hidden="true">↓</span>';
-    button.setAttribute("aria-label", `Download again ${button.dataset.gameSlug}`);
-    if (actions && !actions.querySelector(".download-status-chip")) {
+    const statusContainer = button.closest(".game-card")?.querySelector(".featured-game-status")
+      || button.closest(".game-actions");
+    button.innerHTML = 'Download again for PC <span aria-hidden="true">↓</span>';
+    button.setAttribute("aria-label", `Download again for PC: ${button.dataset.gameSlug}`);
+    if (statusContainer && !statusContainer.querySelector(".download-status-chip")) {
       const status = document.createElement("span");
       status.className = "download-status-chip";
       status.textContent = "Downloaded";
-      actions.append(status);
+      statusContainer.append(status);
     }
     window.location.assign(result.url);
   } catch (error) {
@@ -352,20 +337,6 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[character]);
-}
-
-function downloadButton(url, label, platform) {
-  if (!url) return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
-  let safeUrl;
-  try {
-    safeUrl = new URL(url);
-  } catch {
-    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
-  }
-  if (!['https:', 'http:'].includes(safeUrl.protocol)) {
-    return `<span class="download-unavailable" aria-label="${platform} download unavailable">${platform} · Coming soon</span>`;
-  }
-  return `<a class="download-link" href="${escapeHtml(safeUrl.href)}" target="_blank" rel="noopener noreferrer" aria-label="Download ${platform}">${label} <span aria-hidden="true">↓</span></a>`;
 }
 
 async function initializeAuth() {
@@ -632,41 +603,7 @@ async function initializeAuth() {
       termsAccepted: session.user?.user_metadata?.terms_accepted === true,
     }, supabase);
     await loadGames(session.access_token);
-    document.querySelectorAll("[data-auth-note], [data-library-note]").forEach((element) => {
-      element.textContent = `Signed in as ${result.user.username}. Your game scores are ready to sync.`;
-    });
-
-    if (gameCodePanel) {
-      try {
-        const codeResponse = await fetch("/api/session/code", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const codeResult = await codeResponse.json();
-        if (!codeResponse.ok) throw new Error(codeResult.error || "Could not create a game login code.");
-        renderGameCode(codeResult.code);
-      } catch (error) {
-        toastMessage(error.message);
-      }
-    }
   }
-}
-
-function renderGameCode(code) {
-  if (!gameCodePanel) return;
-  gameCodePanel.hidden = !code;
-  if (!code) return;
-
-  const codeValue = gameCodePanel.querySelector("[data-game-code-value]");
-  const copyButton = gameCodePanel.querySelector("[data-copy-game-code]");
-  codeValue.textContent = code;
-  copyButton.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toastMessage("Game login code copied.");
-    } catch {
-      toastMessage("Copy is unavailable. Select the code to copy it.");
-    }
-  };
 }
 
 function renderAuthState(user, supabase) {
@@ -677,6 +614,8 @@ function renderAuthState(user, supabase) {
     document.querySelector(".hero")?.setAttribute("aria-labelledby", user ? "hero-title" : "auth-heading");
   }
   if (authPanel) authPanel.hidden = Boolean(user);
+  document.querySelector("[data-auth-note]")?.toggleAttribute("hidden", Boolean(user));
+  document.querySelector("[data-library-signin]")?.toggleAttribute("hidden", Boolean(user));
   googleConsentRows.forEach((row) => {
     row.hidden = Boolean(user?.termsAccepted);
   });
@@ -688,7 +627,6 @@ function renderAuthState(user, supabase) {
   if (!user) {
     accountSlot.innerHTML = '<span class="account-label">PLAYER 01</span>';
     if (walletWidget) accountSlot.prepend(walletWidget);
-    renderGameCode(null);
     return;
   }
   accountSlot.innerHTML = `<a class="account-name" href="/account.html">${escapeHtml(user.username)}</a><a class="account-settings-link" href="/account.html">Settings</a><button class="sign-out" type="button">Sign out</button>`;

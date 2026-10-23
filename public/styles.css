@@ -33,6 +33,7 @@ button { font: inherit; }
 .account-name { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
 .wallet-balance { min-height: 30px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #a881ff45; border-radius: 3px; background: #1a1128; color: #e4d3ff; font: 11px var(--mono); }
 .wallet-balance svg { width: 19px; height: 19px; display: block; filter: drop-shadow(0 0 5px #a881ff88); }
+.wallet-loading-spinner { width: 11px; height: 11px; display: inline-block; border: 1.5px solid #a881ff55; border-top-color: #e4d3ff; border-radius: 50%; animation: auth-spin 850ms linear infinite; vertical-align: middle; }
 .sign-out { padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; }
 .hero { display: grid; grid-template-columns: 1fr 0.91fr; min-height: 514px; padding: 62px 7.1% 58px; gap: 5.5%; align-items: center; }
 .hero-copy { padding: 12px 0 0; }
@@ -77,12 +78,6 @@ h1, h2, p { margin-top: 0; }
 .auth-mode-toggle { justify-self: center; padding: 2px 4px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 10px; }
 .auth-mode-toggle:hover { color: var(--ink); }
 .auth-mode-toggle:disabled { cursor: wait; }
-.game-login-code { width: min(100%, 370px); margin-top: 20px; padding: 16px 0 0; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px 12px; border-top: 1px solid var(--line); }
-.game-login-code h2 { margin: 5px 0 0; font-size: 15px; font-weight: 500; }
-.game-login-code code { color: var(--ink); font: 500 20px var(--mono); letter-spacing: 2px; }
-.copy-code { padding: 6px 9px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 10px; }
-.copy-code:hover { border-color: var(--coral); }
-.code-expiry { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 10px; }
 .library-game-code { width: min(100%, 370px); margin-top: 30px; }
 .hero-art { position: relative; min-height: 348px; overflow: hidden; display: grid; place-items: center; background: var(--acid); }
 .hero-art::before { position: absolute; inset: 0; content: ""; background-image: radial-gradient(#17201724 0.65px, transparent 0.65px); background-size: 8px 8px; opacity: .45; }
@@ -112,13 +107,15 @@ h1, h2, p { margin-top: 0; }
 .game-card-copy { padding: 17px 17px 15px; }
 .game-card-copy .eyebrow { font-size: 9px; }
 .game-card-copy h2 { min-height: 24px; margin: 6px 0 17px; font-size: 16px; line-height: 1.35; }
-.featured-game-card .game-card-copy h2 { min-height: 0; margin: 0 0 5px; font-size: 18px; }
-.featured-game-description { margin: 0 0 13px; overflow: hidden; color: #a89bb6; font-size: 10px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.quest-preview { margin: 0 0 13px; }
+.featured-game-card .game-card-copy { padding: 27px 25px 25px; }
+.featured-game-heading { min-height: 29px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.featured-game-card .game-card-copy h2 { min-height: 0; margin: 0; font-size: 20px; line-height: 1.3; }
+.featured-game-status { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.featured-game-description { margin: 0 0 23px; overflow: hidden; color: #a89bb6; font-size: 12px; line-height: 1.6; text-overflow: ellipsis; white-space: nowrap; }
+.quest-preview { margin: 0 0 23px; gap: 13px; }
 .quest-preview .quest-row { grid-template-columns: 15px minmax(0, 1fr); }
 .quest-row-preview { color: #e9e0f3; }
 .quest-preview-dot { width: 6px; height: 6px; margin: 5px 4px 0; border-radius: 50%; background: #8b8292; }
-.download-actions { display: flex; gap: 7px; flex-wrap: wrap; }
 .download-link, .download-unavailable { min-height: 31px; padding: 0 9px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 2px; font: 9px var(--mono); }
 .download-link { border-color: var(--ink); }
 .download-link span { color: var(--coral); font-size: 13px; }
@@ -146,29 +143,33 @@ h1, h2, p { margin-top: 0; }
 .platform-quest-section { margin: 20px 7.1% 25px; }
 .platform-quest-card { min-width: 0; padding: 16px 20px; display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 19px; border: 1px solid #a881ff47; border-radius: 7px; background: radial-gradient(ellipse at 72% 0, #512d7629, transparent 52%), linear-gradient(120deg, #171020, #0e0b14 70%); box-shadow: 0 12px 36px #0004, inset 0 1px #ffffff09; }
 .platform-quest-badge { position: relative; width: 68px; aspect-ratio: 1; display: grid; place-items: center; isolation: isolate; overflow: hidden; border: 1px solid #d7b9ff99; border-radius: 50%; background: conic-gradient(from 25deg, #412266, #a875ed, #412266, #8150bc, #d5b4ff, #412266); box-shadow: inset 0 0 0 4px #160f20, 0 0 24px #a15bff45; }
+.platform-quest-badge { width: 82px; }
 .platform-quest-badge::before { position: absolute; z-index: -1; inset: 8px; content: ""; border: 1px solid #ebd8ff66; border-radius: 50%; background: conic-gradient(from 0deg, #ffffff1c 0 12%, transparent 12% 25%, #ffffff13 25% 38%, transparent 38% 50%, #ffffff1c 50% 62%, transparent 62% 75%, #ffffff12 75% 88%, transparent 88%); }
 .platform-quest-badge span { color: #fff; font-size: 27px; font-weight: 700; line-height: 1; text-shadow: 0 2px 9px #160a27; }
 .platform-quest-content { min-width: 0; }
 .platform-quest-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .platform-quest-heading > span { color: #7e718d; font: 8px var(--mono); letter-spacing: .08em; }
 .platform-quest-heading .eyebrow { color: #dfcaff; font-size: 9px; }
-.platform-track { position: relative; height: 82px; margin: 9px 0 0; }
-.platform-segments { position: absolute; top: 13px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
-.platform-segments .quest-segment { height: 4px; }
-.platform-milestone { position: absolute; top: 0; left: var(--milestone-position); min-width: 49px; display: grid; justify-items: center; align-content: start; row-gap: 1px; transform: translateX(-50%); }
+.platform-track { position: relative; height: 137px; margin: 9px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-color: #76558f #201a28; scrollbar-width: thin; touch-action: pan-x; }
+.platform-track-inner { position: relative; width: 100%; min-width: 100%; height: 129px; }
+.platform-segments { position: absolute; top: 56px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+.platform-segments .quest-segment { height: 16px; border-radius: 3px; }
+.platform-milestone { position: absolute; top: 0; left: var(--milestone-position); min-width: 52px; display: grid; justify-items: center; align-content: start; row-gap: 3px; transform: translateX(-50%); }
 .platform-milestone:last-child { transform: translateX(-100%); }
 .milestone-pin { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #5a4c68; border-radius: 50%; background: #1a1422; }
 .milestone-pin img { width: 18px; height: 18px; filter: grayscale(1) opacity(.4); }
-.milestone-reward { color: #827889; font: 8px var(--mono); white-space: nowrap; }
-.milestone-label { color: #96899f; font: 9px var(--mono); }
+.milestone-reward { min-height: 19px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: #b0a3bb; font: 600 12px var(--mono); white-space: nowrap; }
+.milestone-reward img { width: 16px; height: 16px; filter: grayscale(1) opacity(.55); }
+.milestone-label { color: #f1eaff; font: 700 16px var(--sans); line-height: 1.2; text-shadow: 0 1px 5px #000; }
 .platform-milestone.is-claimable .milestone-pin { border-color: #d3aaff; background: #57327d; box-shadow: 0 0 15px #b87aff9c; animation: milestone-glow 1.8s ease-in-out infinite; }
 .platform-milestone.is-claimable .milestone-pin img { filter: drop-shadow(0 0 4px #e0c3ff); }
 .platform-milestone.is-claimable .milestone-reward,
 .platform-milestone.is-claimable .milestone-label { color: #eadbff; }
+.platform-milestone.is-claimable .milestone-reward img { filter: drop-shadow(0 0 4px #e0c3ff); }
 .platform-milestone.is-claimed .milestone-pin { border-color: #b88be8; background: #7044a0; box-shadow: 0 0 11px #a15bff5c; }
 .milestone-check { color: #fff; font-size: 15px; line-height: 1; }
 .platform-milestone.is-claimed .milestone-reward { color: #d9c1f2; }
-.platform-claim { min-height: 21px; margin-top: 2px; padding: 0 7px; border: 1px solid #c69aff; border-radius: 3px; background: #7948b4; color: white; cursor: pointer; font-size: 8px; font-weight: 700; }
+.platform-claim { min-height: 23px; margin-top: 1px; padding: 0 8px; border: 1px solid #c69aff; border-radius: 3px; background: #7948b4; color: white; cursor: pointer; font-size: 9px; font-weight: 700; }
 .platform-claim:hover { background: #925bd3; box-shadow: 0 0 12px #a15bff8a; }
 .platform-claim:disabled { cursor: wait; opacity: .65; }
 .platform-quest-progress { margin: 1px 0 0; color: #b5a6c5; font-size: 10px; }
@@ -221,7 +222,6 @@ h1, h2, p { margin-top: 0; }
   .library-description { width: auto; max-width: 360px; margin: 0 0 12px; }
   .library-signin { align-items: flex-start; flex-direction: column; }
   .signin-action { align-items: flex-start; flex-direction: column; }
-  .game-login-code { grid-template-columns: 1fr auto auto; }
   .site-footer { min-height: 68px; padding: 0 5%; }
   .site-footer > span:nth-child(2) { display: none; }
 }
@@ -319,7 +319,7 @@ img, picture, canvas, video { max-width: 100%; }
   .featured-row, .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-library, .library-main { padding-inline: clamp(24px, 5vw, 56px); }
   .site-header .wordmark, .site-header .sign-out, .nav-link, .footer-mark, .button, .email-submit,
-  .copy-code, .download-link, .download-unavailable, .password-visibility, .auth-mode-toggle, .text-link {
+  .download-link, .download-unavailable, .password-visibility, .auth-mode-toggle, .text-link {
     min-height: 44px;
   }
   .site-header .sign-out { display: inline-flex; align-items: center; }
@@ -380,7 +380,6 @@ img, picture, canvas, video { max-width: 100%; }
   .library-signin { align-items: stretch; flex-direction: column; }
   .signin-action { width: 100%; align-items: stretch; flex-direction: column; gap: 12px; }
   .signin-action .button { width: min(100%, 360px); }
-  .game-login-code { grid-template-columns: minmax(0, 1fr) auto auto; }
   .site-footer {
     min-height: 0;
     padding: 14px max(20px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
@@ -401,7 +400,7 @@ img, picture, canvas, video { max-width: 100%; }
   .password-control input { padding-right: 52px; }
   .password-visibility { width: 48px; height: 44px; }
   .button, .email-submit { min-height: 44px; }
-  .auth-mode-toggle, .copy-code, .download-link, .download-unavailable { min-height: 44px; }
+  .auth-mode-toggle, .download-link, .download-unavailable { min-height: 44px; }
   .download-link, .download-unavailable { padding-inline: 12px; }
   .text-link { min-height: 44px; display: inline-flex; align-items: center; }
   .toast {
@@ -427,43 +426,37 @@ img, picture, canvas, video { max-width: 100%; }
   .featured-row, .game-grid { grid-template-columns: minmax(0, 1fr); }
   .game-art { height: clamp(165px, 54vw, 230px); }
   .game-card-copy { padding: 16px; }
-  .download-actions { gap: 8px; }
   .download-link, .download-unavailable { flex: 1 1 auto; justify-content: center; min-width: 0; overflow-wrap: anywhere; text-align: center; }
   .library-main { padding-top: 34px; }
   .library-intro h1 { font-size: clamp(3rem, 14vw, 4.2rem); }
   .library-list-head { gap: 12px; }
   .platform-quest-section { margin: 14px 14px 22px; }
   .library-main .platform-quest-section { margin-inline: 0; }
-  .platform-quest-card { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 13px 10px 11px; }
-  .platform-quest-badge { width: 46px; }
+  .platform-quest-card { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; padding: 13px 10px 11px; }
+  .platform-quest-badge { width: 54px; }
   .platform-quest-badge span { font-size: 19px; }
   .platform-quest-heading > span { font-size: 7px; }
   .platform-quest-heading .eyebrow { font-size: 8px; }
-  .platform-track { height: 81px; margin-top: 9px; }
-  .platform-milestone { min-width: 40px; }
+  .platform-track { height: 137px; margin-top: 9px; }
+  .platform-track-inner { min-width: 560px; }
+  .platform-milestone { min-width: 52px; }
   .milestone-pin { width: 25px; height: 25px; }
   .milestone-pin img { width: 16px; height: 16px; }
-  .milestone-reward { font-size: 7px; }
-  .platform-claim { min-height: 20px; padding-inline: 5px; font-size: 7px; }
-  .platform-quest-progress { font-size: 9px; }
+  .milestone-reward { font-size: 12px; }
+  .milestone-label { font-size: 16px; }
+  .platform-claim { min-height: 23px; padding-inline: 8px; font-size: 9px; }
+  .platform-quest-progress { font-size: 10px; }
 }
 
 @media (max-width: 350px) {
   .platform-quest-section { margin-inline: 10px; }
-  .platform-quest-card { grid-template-columns: 40px minmax(0, 1fr); gap: 7px; padding-inline: 8px; }
-  .platform-quest-badge { width: 39px; }
-  .platform-quest-badge span { font-size: 17px; }
-  .milestone-reward { font-size: 6px; }
-  .platform-milestone { min-width: 35px; }
+  .platform-quest-card { grid-template-columns: 48px minmax(0, 1fr); gap: 7px; padding-inline: 8px; }
+  .platform-quest-badge { width: 48px; }
+  .platform-quest-badge span { font-size: 18px; }
+  .platform-milestone { min-width: 52px; }
 }
 
 .game-download-area { display: grid; justify-items: start; gap: 5px; }
-.download-actions > [data-platform-option] { display: inline-flex; }
-.download-actions > [data-platform-option][hidden] { display: none; }
-.platform-note { flex: 1 0 100%; width: 100%; margin: 0; color: #c7b6dd; font-size: 10px; line-height: 1.55; }
-.platform-toggle, .platform-inline-action { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 10px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.platform-toggle { min-height: 44px; }
-.platform-toggle:hover, .platform-inline-action:hover { color: #ead9ff; }
 
 .device-link-page { min-height: 100vh; min-height: 100dvh; background: radial-gradient(ellipse at 50% 28%, #2b1940 0, #171020 32%, #0b0810 74%); }
 .device-link-main { min-height: 100vh; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; }
