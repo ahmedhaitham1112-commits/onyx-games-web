@@ -112,18 +112,19 @@ h1, h2, p { margin-top: 0; }
 .game-card-copy { padding: 17px 17px 15px; }
 .game-card-copy .eyebrow { font-size: 9px; }
 .game-card-copy h2 { min-height: 24px; margin: 6px 0 17px; font-size: 16px; line-height: 1.35; }
-.quest-preview { margin: -5px 0 15px; color: #d7c8e9; }
-.quest-preview p { margin: 0 0 6px; color: #c39af0; font: 9px var(--mono); }
-.quest-preview ul { margin: 0; padding: 0; display: grid; gap: 4px; list-style: none; }
-.quest-preview li { color: #a89bb6; font-size: 9px; line-height: 1.4; }
+.featured-game-card .game-card-copy h2 { min-height: 0; margin: 0 0 5px; font-size: 18px; }
+.featured-game-description { margin: 0 0 13px; overflow: hidden; color: #a89bb6; font-size: 10px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.quest-preview { margin: 0 0 13px; }
+.quest-preview .quest-row { grid-template-columns: 15px minmax(0, 1fr); }
+.quest-row-preview { color: #e9e0f3; }
+.quest-preview-dot { width: 6px; height: 6px; margin: 5px 4px 0; border-radius: 50%; background: #8b8292; }
 .download-actions { display: flex; gap: 7px; flex-wrap: wrap; }
 .download-link, .download-unavailable { min-height: 31px; padding: 0 9px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 2px; font: 9px var(--mono); }
 .download-link { border-color: var(--ink); }
 .download-link span { color: var(--coral); font-size: 13px; }
 .download-unavailable { color: #969990; }
-.download-state { min-height: 31px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 11px; }
-.download-state strong { color: #e4d3ff; font: 10px var(--mono); }
-.download-state small { color: #8f829d; font-size: 8px; }
+.game-actions { min-height: 31px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; }
+.download-status-chip { padding: 4px 7px; border: 1px solid #725b8d; border-radius: 10px; color: #d6c2ee; font: 8px var(--mono); line-height: 1; }
 .download-state-link { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 9px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .download-state-link:hover { color: #ead9ff; }
 .loading-line, .empty-state { padding: 28px 0; color: var(--muted); font-size: 12px; }
@@ -152,9 +153,8 @@ h1, h2, p { margin-top: 0; }
 .platform-quest-heading > span { color: #7e718d; font: 8px var(--mono); letter-spacing: .08em; }
 .platform-quest-heading .eyebrow { color: #dfcaff; font-size: 9px; }
 .platform-track { position: relative; height: 82px; margin: 9px 0 0; }
-.platform-track::before, .platform-track-fill { position: absolute; top: 13px; left: 0; height: 3px; border-radius: 3px; }
-.platform-track::before { right: 0; content: ""; background: #3a3047; }
-.platform-track-fill { max-width: 100%; background: linear-gradient(90deg, #7744ba, #d3aaff); box-shadow: 0 0 11px #a15bff91; transition: width 350ms ease; }
+.platform-segments { position: absolute; top: 13px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.platform-segments .quest-segment { height: 4px; }
 .platform-milestone { position: absolute; top: 0; left: var(--milestone-position); min-width: 49px; display: grid; justify-items: center; align-content: start; row-gap: 1px; transform: translateX(-50%); }
 .platform-milestone:last-child { transform: translateX(-100%); }
 .milestone-pin { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #5a4c68; border-radius: 50%; background: #1a1422; }
@@ -173,10 +173,12 @@ h1, h2, p { margin-top: 0; }
 .platform-claim:disabled { cursor: wait; opacity: .65; }
 .platform-quest-progress { margin: 1px 0 0; color: #b5a6c5; font-size: 10px; }
 .platform-quest-section.is-claiming { animation: platform-claim-burst 520ms cubic-bezier(.2,.8,.25,1); }
-.uninstall-help { margin-top: 28px; padding: 17px 19px; border: 1px solid #c6a8ff24; border-radius: 4px; background: #100d17; }
-.uninstall-help h2 { margin: 7px 0; color: #e8d9f9; font-size: 15px; font-weight: 600; }
-.uninstall-help p:last-child { max-width: 640px; margin: 0; color: #a89bb6; font-size: 11px; line-height: 1.65; }
-.uninstall-help strong { color: #e2d1f5; }
+.uninstall-dialog { width: min(calc(100vw - 32px), 340px); padding: 0; overflow: visible; border: 1px solid #a881ff66; border-radius: 6px; background: #17111f; color: var(--ink); box-shadow: 0 16px 60px #000b, 0 0 26px #a15bff25; }
+.uninstall-dialog::backdrop { background: #050309b8; }
+.uninstall-dialog-content { position: relative; padding: 23px; }
+.uninstall-dialog-content h2 { margin: 8px 0 10px; font-size: 17px; font-weight: 600; }
+.uninstall-dialog-content > p:last-child { margin: 0; color: #c5bdcf; font-size: 12px; line-height: 1.6; }
+.uninstall-dialog-close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; background: transparent; color: #c5bdcf; font-size: 22px; cursor: pointer; }
 @keyframes milestone-glow { 50% { box-shadow: 0 0 21px #c28affc7; } }
 @keyframes platform-claim-burst { 35% { transform: scale(1.012); filter: brightness(1.35); } 100% { transform: scale(1); filter: brightness(1); } }
 .library-main { padding: 59px 7.1% 70px; }
@@ -277,7 +279,6 @@ body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .intro-title { transition: none; }
-  .platform-track-fill { transition: none; }
   .platform-milestone.is-claimable .milestone-pin,
   .platform-quest-section.is-claiming { animation: none; }
 }
@@ -445,7 +446,6 @@ img, picture, canvas, video { max-width: 100%; }
   .milestone-reward { font-size: 7px; }
   .platform-claim { min-height: 20px; padding-inline: 5px; font-size: 7px; }
   .platform-quest-progress { font-size: 9px; }
-  .uninstall-help { margin-top: 22px; padding: 15px; }
 }
 
 @media (max-width: 350px) {

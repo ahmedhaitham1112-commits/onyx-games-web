@@ -4,6 +4,8 @@ import { initializeHeroIntro } from "./hero-intro.js?v=20261024";
 const accountSlot = document.querySelector("[data-account]");
 const gameCodePanel = document.querySelector("[data-game-code]");
 const platformQuestBar = document.querySelector("[data-platform-quests]");
+const googleConsentRows = document.querySelectorAll("[data-google-consent]");
+const googleConsentPendingKey = "onyx-google-consent-pending";
 const authPanel = document.querySelector("[data-auth-panel]");
 const emailAuthForm = document.querySelector("[data-email-auth]");
 const toast = document.querySelector("[data-toast]");
@@ -19,6 +21,22 @@ const toastMessage = (message) => {
   toast.classList.add("visible");
   window.setTimeout(() => toast.classList.remove("visible"), 4200);
 };
+
+function isGoogleConsentPending() {
+  try {
+    return localStorage.getItem(googleConsentPendingKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function clearGoogleConsentPending() {
+  try {
+    localStorage.removeItem(googleConsentPendingKey);
+  } catch {
+    // The account metadata remains the persistent consent record.
+  }
+}
 
 document.querySelectorAll("[data-year]").forEach((element) => {
   element.textContent = new Date().getFullYear();
@@ -58,10 +76,14 @@ async function loadGames(accessToken = currentAccessToken) {
       const includeQuests = container.hasAttribute("data-games");
       container.innerHTML = games.map((game, index) => {
         const quests = questDataBySlug.get(game.slug);
+        const homeDescription = "Hold your gaze, build your score, and see how long you can keep staring.";
         return `
-        <article class="game-card">
-          <div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>
-          <div class="game-card-copy"><div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>
+        <article class="game-card${includeQuests ? "" : " featured-game-card"}">
+          ${includeQuests ? `<div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>` : ""}
+          <div class="game-card-copy">
+            ${includeQuests
+              ? `<div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>`
+              : `<h2>${escapeHtml(game.name)}</h2><p class="featured-game-description">${escapeHtml(homeDescription)}</p>`}
             ${!includeQuests && quests ? renderQuestPreview(quests) : ""}
             ${gameDownloadOptions(game, visitorPlatform)}
           </div>
@@ -92,40 +114,50 @@ function renderQuestPanel(data, isLoggedIn) {
 }
 
 function renderQuestPreview(data) {
-  const quests = data.quests.slice(0, 3);
-  return `<div class="quest-preview"><p>3 quick quests</p><ul>${quests.map((quest) => `<li>${escapeHtml(quest.title)}</li>`).join("")}</ul></div>`;
+  return `<ol class="quest-list quest-preview">${data.quests.slice(0, 3).map((quest) => `
+    <li class="quest-row quest-row-preview">
+      <span class="quest-preview-dot" aria-hidden="true"></span>
+      <span><strong>${escapeHtml(quest.title)}</strong><small>${escapeHtml(quest.description)}</small></span>
+    </li>`).join("")}</ol>`;
 }
 
 function renderPlatformQuestBar(data) {
-  const completedCount = Number(data.completed_count || 0);
+  const completedCount = data ? Number(data.completed_count || 0) : null;
   const milestoneProgress = Math.min(completedCount, 10);
-  const progress = milestoneProgress * 10;
-  const milestones = data.milestones.map((milestone) => {
-    const status = milestone.claimed ? "is-claimed" : milestone.claimable ? "is-claimable" : "is-locked";
-    const reward = milestone.claimed ? `${milestone.shards} SHARDS` : milestone.is_mystery ? "???" : `${milestone.shards} SHARDS`;
-    const indicator = milestone.claimed
+  const milestones = [2, 4, 6, 8, 10].map((required, index) => {
+    const milestone = data?.milestones.find((item) => item.quests_required === required);
+    const nodeIndex = milestone?.node_index || index + 1;
+    const claimed = Boolean(milestone?.claimed);
+    const claimable = Boolean(milestone?.claimable);
+    const isMystery = required === 10;
+    const status = claimed ? "is-claimed" : claimable ? "is-claimable" : "is-locked";
+    const reward = claimed ? `${milestone.shards}` : isMystery ? "???" : "20";
+    const indicator = claimed
       ? '<span class="milestone-check" aria-label="Claimed">✓</span>'
       : `<img src="/shard.svg" width="19" height="19" alt="">`;
-    const claim = milestone.claimable
-      ? `<button class="platform-claim" type="button" data-platform-claim data-node-index="${milestone.node_index}">Claim</button>`
+    const claim = claimable
+      ? `<button class="platform-claim" type="button" data-platform-claim data-node-index="${nodeIndex}">Claim</button>`
       : "";
-    return `<div class="platform-milestone ${status}" style="--milestone-position:${milestone.quests_required * 10}%" data-node-index="${milestone.node_index}">
+    return `<div class="platform-milestone ${status}" style="--milestone-position:${required * 10}%" data-node-index="${nodeIndex}">
       <div class="milestone-pin">${indicator}</div>
       <span class="milestone-reward">${escapeHtml(reward)}</span>
-      <span class="milestone-label">${milestone.quests_required}</span>
+      <span class="milestone-label">${required}</span>
       ${claim}
     </div>`;
   }).join("");
+  const segments = Array.from({ length: 10 }, (_, index) => (
+    `<span class="quest-segment${completedCount !== null && index < completedCount ? " is-complete" : ""}"></span>`
+  )).join("");
 
   return `<div class="platform-quest-card">
-    <div class="platform-quest-badge" aria-label="${completedCount} quests completed"><span>${completedCount}</span></div>
+    <div class="platform-quest-badge" aria-label="${completedCount === null ? "Loading quest total" : `${completedCount} quests completed`}"><span>${completedCount === null ? "..." : completedCount}</span></div>
     <div class="platform-quest-content">
       <div class="platform-quest-heading"><p class="eyebrow">DAILY QUESTS</p><span>PLATFORM MILESTONES</span></div>
-      <div class="platform-track" role="img" aria-label="${Math.min(completedCount, 10)} of 10 quests toward milestones">
-        <span class="platform-track-fill" style="width:${progress}%"></span>
+      <div class="platform-track" role="img" aria-label="${completedCount === null ? "Loading quests" : `${Math.min(completedCount, 10)} of 10 quests toward milestones`}">
+        <div class="platform-segments">${segments}</div>
         ${milestones}
       </div>
-      <p class="platform-quest-progress">${milestoneProgress} of 10 quests completed</p>
+      <p class="platform-quest-progress">${completedCount === null ? "Loading..." : `${milestoneProgress} of 10 quests completed`}</p>
     </div>
   </div>`;
 }
@@ -216,15 +248,12 @@ document.addEventListener("click", async (event) => {
 });
 
 function gameActionButton(game) {
-  if (game.installed) {
-    return `<div class="download-state"><strong title="A device signed in with this account. The site cannot verify whether the game remains installed.">Installed</strong><small>Device signed in</small><a class="download-state-link" href="/library.html#how-to-uninstall">How to uninstall</a></div>`;
-  }
-  if (game.downloaded) {
-    return `<div class="download-state"><strong title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</strong><small>Link requested</small><button class="download-state-link" type="button" data-game-action="download" data-game-slug="${escapeHtml(game.slug)}">Download again</button></div>`;
-  }
   const action = game.owned ? "download" : "get";
-  const label = game.owned ? "Download" : "Get";
-  return `<button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">${game.owned ? "↓" : "+"}</span></button>`;
+  const label = game.downloaded ? "Download again" : game.owned ? "Download" : "Get";
+  const status = game.installed
+    ? '<span class="download-status-chip" title="A device signed in with this account; the site cannot verify the game remains installed.">Installed</span><button class="download-state-link" type="button" data-uninstall-open>How to uninstall</button>'
+    : game.downloaded ? '<span class="download-status-chip" title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</span>' : "";
+  return `<div class="game-actions"><button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">↓</span></button>${status}</div>`;
 }
 
 function detectVisitorPlatform() {
@@ -251,6 +280,16 @@ function gameDownloadOptions(game, platform) {
 }
 
 document.addEventListener("click", async (event) => {
+  const uninstallButton = event.target.closest("[data-uninstall-open]");
+  if (uninstallButton) {
+    document.querySelector("[data-uninstall-dialog]")?.showModal();
+    return;
+  }
+  if (event.target.closest("[data-uninstall-close]")) {
+    document.querySelector("[data-uninstall-dialog]")?.close();
+    return;
+  }
+
   const otherPlatformsButton = event.target.closest("[data-other-platforms]");
   if (otherPlatformsButton) {
     const area = otherPlatformsButton.closest("[data-download-area]");
@@ -292,11 +331,15 @@ document.addEventListener("click", async (event) => {
       await loadGames();
       return;
     }
-    button.outerHTML = gameActionButton({
-      slug: button.dataset.gameSlug,
-      installed: false,
-      downloaded: true,
-    });
+    const actions = button.closest(".game-actions");
+    button.innerHTML = 'Download again <span aria-hidden="true">↓</span>';
+    button.setAttribute("aria-label", `Download again ${button.dataset.gameSlug}`);
+    if (actions && !actions.querySelector(".download-status-chip")) {
+      const status = document.createElement("span");
+      status.className = "download-status-chip";
+      status.textContent = "Downloaded";
+      actions.append(status);
+    }
     window.location.assign(result.url);
   } catch (error) {
     toastMessage(error.message || "Could not complete the game request.");
@@ -427,6 +470,7 @@ async function initializeAuth() {
     username: cachedSession.user?.user_metadata?.username
       || cachedSession.user?.email?.split("@")[0]
       || "Player",
+    termsAccepted: cachedSession.user?.user_metadata?.terms_accepted === true,
   } : null);
 
   const configResponse = await fetch("/api/config");
@@ -448,10 +492,18 @@ async function initializeAuth() {
   document.querySelectorAll("[data-sign-in]").forEach((button) => {
     button.addEventListener("click", async () => {
       const consent = button.closest(".auth-panel, .signin-action")?.querySelector("[data-legal-consent]");
-      if (!consent?.checked) {
+      if (consent && !consent.closest("[data-google-consent]")?.hidden && !consent.checked) {
         toastMessage("Please agree to the Terms of Service and Privacy Policy before continuing.");
         consent?.focus();
         return;
+      }
+      if (consent && !consent.closest("[data-google-consent]")?.hidden) {
+        try {
+          localStorage.setItem(googleConsentPendingKey, "true");
+        } catch {
+          toastMessage("Consent could not be saved. Please allow local storage and try again.");
+          return;
+        }
       }
       button.disabled = true;
       button.classList.add("is-loading");
@@ -462,6 +514,7 @@ async function initializeAuth() {
         });
         if (error) throw error;
       } catch (error) {
+        clearGoogleConsentPending();
         button.disabled = false;
         button.classList.remove("is-loading");
         toastMessage(error.message || "Could not start Google sign-in.");
@@ -495,7 +548,7 @@ async function initializeAuth() {
           email,
           password,
           options: {
-            data: { username, display_name: displayName },
+            data: { username, display_name: displayName, terms_accepted: true },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -534,7 +587,10 @@ async function initializeAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) await syncSession(session);
   else if (authPanel) renderAuthState(null, supabase);
-  else await loadGames();
+  else {
+    renderAuthState(null, supabase);
+    await loadGames("");
+  }
   supabase.auth.onAuthStateChange((_event, nextSession) => {
     if (nextSession) window.setTimeout(() => syncSession(nextSession), 0);
     else {
@@ -545,9 +601,21 @@ async function initializeAuth() {
   });
 
   async function syncSession(session) {
+    if (isGoogleConsentPending() && session.user?.user_metadata?.terms_accepted !== true) {
+      const { data, error } = await supabase.auth.updateUser({ data: { terms_accepted: true } });
+      if (error) {
+        toastMessage("You signed in, but your consent could not be saved. Please try signing in again.");
+      } else {
+        session = { ...session, user: data.user };
+        clearGoogleConsentPending();
+      }
+    } else if (session.user?.user_metadata?.terms_accepted === true) {
+      clearGoogleConsentPending();
+    }
     currentAccessToken = session.access_token;
     renderAuthState({
       username: session.user?.user_metadata?.username || session.user?.email?.split("@")[0] || "Player",
+      termsAccepted: session.user?.user_metadata?.terms_accepted === true,
     }, supabase);
     const response = await fetch("/api/login", {
       method: "POST",
@@ -559,7 +627,10 @@ async function initializeAuth() {
       toastMessage(result.error || "Could not sign in.");
       return;
     }
-    renderAuthState(result.user, supabase);
+    renderAuthState({
+      ...result.user,
+      termsAccepted: session.user?.user_metadata?.terms_accepted === true,
+    }, supabase);
     await loadGames(session.access_token);
     document.querySelectorAll("[data-auth-note], [data-library-note]").forEach((element) => {
       element.textContent = `Signed in as ${result.user.username}. Your game scores are ready to sync.`;
@@ -606,16 +677,22 @@ function renderAuthState(user, supabase) {
     document.querySelector(".hero")?.setAttribute("aria-labelledby", user ? "hero-title" : "auth-heading");
   }
   if (authPanel) authPanel.hidden = Boolean(user);
+  googleConsentRows.forEach((row) => {
+    row.hidden = Boolean(user?.termsAccepted);
+  });
   document.querySelectorAll("[data-sign-in]").forEach((button) => {
     button.hidden = Boolean(user);
   });
   if (!accountSlot) return;
+  const walletWidget = accountSlot.querySelector("[data-wallet-widget]");
   if (!user) {
     accountSlot.innerHTML = '<span class="account-label">PLAYER 01</span>';
+    if (walletWidget) accountSlot.prepend(walletWidget);
     renderGameCode(null);
     return;
   }
   accountSlot.innerHTML = `<a class="account-name" href="/account.html">${escapeHtml(user.username)}</a><a class="account-settings-link" href="/account.html">Settings</a><button class="sign-out" type="button">Sign out</button>`;
+  if (walletWidget) accountSlot.prepend(walletWidget);
   const signOutButton = accountSlot.querySelector(".sign-out");
   if (!supabase || !signOutButton) return;
   signOutButton.addEventListener("click", async () => {

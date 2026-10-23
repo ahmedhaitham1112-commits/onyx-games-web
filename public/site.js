@@ -41,7 +41,7 @@ function ensureWalletWidget() {
   widget = document.createElement("span");
   widget.className = "wallet-balance";
   widget.dataset.walletWidget = "";
-  widget.hidden = true;
+  widget.hidden = !walletAccessToken;
   widget.innerHTML = '<svg width="19" height="19" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M18 2.8 29.4 8l4.1 12.2L21 33.1l-8.8-.8L2.5 20.1 6.1 8.5 18 2.8Z" fill="url(#wallet-shard)" stroke="#E8D6FF" stroke-width="1.2"/><path d="m18 2.8 1.1 12.8L6.1 8.5 18 2.8Z" fill="#F2E8FF"/><path d="m19.1 15.6 14.4 4.6L21 33.1 19.1 15.6Z" fill="#A36AFF"/><path d="m19.1 15.6 13.9 4.1L29.4 8l-10.3 7.6Z" fill="#D7B9FF"/><path d="m6.1 8.5 13 7.1-7 16.7-9.6-12.2L6.1 8.5Z" fill="#7542BD"/><path d="m19.1 15.6 1.9 17.5-8.9-.8 7-16.7Z" fill="#C18CFF"/><path d="m6.1 8.5 11.9-5.7 1.1 12.8-13-7.1Z" fill="#D9C0FF"/><defs><linearGradient id="wallet-shard" x1="5" x2="31" y1="5" y2="31" gradientUnits="userSpaceOnUse"><stop stop-color="#F3E9FF"/><stop offset=".42" stop-color="#A66AFF"/><stop offset="1" stop-color="#57268F"/></linearGradient></defs></svg><span data-wallet-amount>0</span>';
   if (accountArea) slot.prepend(widget);
   else slot.replaceChildren(widget);
@@ -55,6 +55,7 @@ async function refreshWallet() {
     widget.hidden = true;
     return;
   }
+  widget.hidden = false;
   const request = ++walletRequest;
   try {
     const response = await fetch("/api/wallet", { headers: { Authorization: `Bearer ${walletAccessToken}` } });
@@ -63,17 +64,25 @@ async function refreshWallet() {
       widget.hidden = true;
       return;
     }
-    if (!response.ok) return;
+    if (!response.ok) {
+      widget.querySelector("[data-wallet-amount]").textContent = "-";
+      return;
+    }
     const result = await response.json();
     widget.querySelector("[data-wallet-amount]").textContent = Number(result.balance || 0).toLocaleString();
     widget.hidden = false;
   } catch {
-    // Keep the last balance visible if a refresh fails.
+    if (request === walletRequest) widget.querySelector("[data-wallet-amount]").textContent = "-";
   }
 }
 
 window.addEventListener("onyx:auth-change", (event) => {
   walletAccessToken = event.detail?.accessToken || "";
+  const widget = ensureWalletWidget();
+  if (widget) {
+    widget.hidden = !walletAccessToken;
+    if (walletAccessToken) widget.querySelector("[data-wallet-amount]").textContent = "...";
+  }
   void refreshWallet();
 });
 window.addEventListener("onyx:wallet-updated", (event) => {

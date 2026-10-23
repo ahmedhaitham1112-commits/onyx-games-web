@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/onyx-logo.png">
     <link rel="preload" href="/shard.svg" as="image" type="image/svg+xml">
-    <link rel="stylesheet" href="/styles.css?v=20261024">
-    <script type="module" src="/app.js?v=20261024"></script>
+    <link rel="stylesheet" href="/styles.css?v=20261024-2">
+    <script type="module" src="/app.js?v=20261024-2"></script>
   </head>
   <body>
     <header class="site-header">
@@ -20,11 +20,49 @@
         <a class="nav-link" href="/">Home</a>
         <a class="nav-link current" href="/library.html">Library <span class="nav-arrow" aria-hidden="true">↗</span></a>
       </nav>
-      <div class="account-area" data-account></div>
+      <div class="account-area" data-account>
+        <span class="wallet-balance" data-wallet-widget hidden><svg width="19" height="19" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M18 2.8 29.4 8l4.1 12.2L21 33.1l-8.8-.8L2.5 20.1 6.1 8.5 18 2.8Z" fill="#8d5bd2" stroke="#E8D6FF" stroke-width="1.2"/><path d="m18 2.8 1.1 12.8L6.1 8.5 18 2.8Z" fill="#F2E8FF"/><path d="m19.1 15.6 14.4 4.6L21 33.1 19.1 15.6Z" fill="#A36AFF"/><path d="m19.1 15.6 13.9 4.1L29.4 8l-10.3 7.6Z" fill="#D7B9FF"/><path d="m6.1 8.5 13 7.1-7 16.7-9.6-12.2L6.1 8.5Z" fill="#7542BD"/><path d="m19.1 15.6 1.9 17.5-8.9-.8 7-16.7Z" fill="#C18CFF"/></svg><span data-wallet-amount>...</span></span>
+      </div>
     </header>
+    <script>
+      try {
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (!key || !/^sb-.+-auth-token$/.test(key)) continue;
+          const stored = JSON.parse(localStorage.getItem(key) || "null");
+          const session = stored?.currentSession || stored;
+          if (session?.access_token && session?.user) {
+            document.querySelector("[data-wallet-widget]").hidden = false;
+            document.documentElement.dataset.cachedAuth = "true";
+            break;
+          }
+        }
+      } catch {}
+    </script>
 
     <main class="library-main">
-      <section class="platform-quest-section" data-platform-quests hidden aria-label="Platform quest milestones"></section>
+      <section class="platform-quest-section" data-platform-quests hidden aria-label="Platform quest milestones">
+        <div class="platform-quest-card">
+          <div class="platform-quest-badge" aria-label="Loading quest total"><span>...</span></div>
+          <div class="platform-quest-content">
+            <div class="platform-quest-heading"><p class="eyebrow">DAILY QUESTS</p><span>PLATFORM MILESTONES</span></div>
+            <div class="platform-track" aria-label="Loading quests">
+              <div class="platform-segments"><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span><span class="quest-segment"></span></div>
+              <div class="platform-milestone is-locked" style="--milestone-position:20%"><div class="milestone-pin"><img src="/shard.svg" width="19" height="19" alt=""></div><span class="milestone-reward">20</span><span class="milestone-label">2</span></div>
+              <div class="platform-milestone is-locked" style="--milestone-position:40%"><div class="milestone-pin"><img src="/shard.svg" width="19" height="19" alt=""></div><span class="milestone-reward">20</span><span class="milestone-label">4</span></div>
+              <div class="platform-milestone is-locked" style="--milestone-position:60%"><div class="milestone-pin"><img src="/shard.svg" width="19" height="19" alt=""></div><span class="milestone-reward">20</span><span class="milestone-label">6</span></div>
+              <div class="platform-milestone is-locked" style="--milestone-position:80%"><div class="milestone-pin"><img src="/shard.svg" width="19" height="19" alt=""></div><span class="milestone-reward">20</span><span class="milestone-label">8</span></div>
+              <div class="platform-milestone is-locked" style="--milestone-position:100%"><div class="milestone-pin"><img src="/shard.svg" width="19" height="19" alt=""></div><span class="milestone-reward">???</span><span class="milestone-label">10</span></div>
+            </div>
+            <p class="platform-quest-progress">Loading...</p>
+          </div>
+        </div>
+      </section>
+      <script>
+        if (document.documentElement.dataset.cachedAuth) {
+          document.querySelector("[data-platform-quests]").hidden = false;
+        }
+      </script>
       <section class="library-intro">
         <div><p class="eyebrow"><span class="status-dot"></span> THE ONYX COLLECTION</p><h1>Game<br><span>library.</span></h1></div>
         <p class="library-description">A growing collection of small, singular ideas. Choose a game and make it yours.</p>
@@ -33,14 +71,9 @@
         <div class="library-list-head"><span>AVAILABLE NOW</span><span data-game-count>— TITLES</span></div>
         <div data-games class="game-grid"><div class="loading-line">Loading games<span class="loading-dots">...</span></div></div>
       </section>
-      <section class="uninstall-help" id="how-to-uninstall" aria-labelledby="uninstall-help-title">
-        <p class="eyebrow">INSTALLED ON YOUR DEVICE?</p>
-        <h2 id="uninstall-help-title">How to uninstall</h2>
-        <p>On Windows, open <strong>Settings</strong>, then <strong>Apps</strong>, choose <strong>Stare at a Guy Simulator</strong>, and select <strong>Uninstall</strong>.</p>
-      </section>
       <section class="library-signin">
         <div><p class="eyebrow">YOUR SCORES, YOURS TO KEEP</p><h2>Pick up where you left off.</h2></div>
-        <div class="signin-action"><span data-library-note>Sign in to keep your scores together.</span><label class="legal-consent google-consent"><input type="checkbox" data-legal-consent><span>By continuing, you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</span></label><button class="button button-dark google-sign-in" type="button" data-sign-in><span class="google-g" aria-hidden="true">G</span><span data-google-label>Sign in with Google</span><span class="auth-spinner" aria-hidden="true"></span></button></div>
+        <div class="signin-action"><span data-library-note>Sign in to keep your scores together.</span><label class="legal-consent google-consent" data-google-consent><input type="checkbox" data-legal-consent><span>By continuing, you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</span></label><button class="button button-dark google-sign-in" type="button" data-sign-in><span class="google-g" aria-hidden="true">G</span><span data-google-label>Sign in with Google</span><span class="auth-spinner" aria-hidden="true"></span></button></div>
       </section>
       <section class="game-login-code library-game-code" data-game-code aria-labelledby="game-code-heading" hidden>
         <div><p class="eyebrow">DESKTOP GAME</p><h2 id="game-code-heading">Game Login Code</h2></div>
@@ -55,6 +88,13 @@
       <span class="footer-year">© <span data-year></span> ONYX GAMES</span>
     </footer>
     <div class="toast" role="status" aria-live="polite" data-toast></div>
-    <script type="module" src="/site.js?v=20261024"></script>
+    <dialog class="uninstall-dialog" data-uninstall-dialog aria-labelledby="uninstall-dialog-title">
+      <div class="uninstall-dialog-content">
+        <button class="uninstall-dialog-close" type="button" data-uninstall-close aria-label="Close">×</button>
+        <p class="eyebrow">WINDOWS</p><h2 id="uninstall-dialog-title">How to uninstall</h2>
+        <p>Settings → Apps → Stare at a Guy Simulator → Uninstall</p>
+      </div>
+    </dialog>
+    <script type="module" src="/site.js?v=20261024-2"></script>
   </body>
 </html>
