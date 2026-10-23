@@ -577,6 +577,7 @@ app.delete("/api/account", async (req, res) => {
   res.json({ deleted: true });
 });
 
+// TODO: Remove the legacy session-code endpoints once the new installer is public.
 app.get("/api/session/code", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!requireSupabase(res)) return;
@@ -724,49 +725,108 @@ app.get("/api/quests/:gameSlug", async (req, res) => {
 
   try {
     if (userId) await recordQuestProgress(userId, game.id);
-    const [{ data: quests, error: questError }, { data: rewardNodes, error: rewardsError }] = await Promise.all([
-      supabase.from("quests").select("id, position, title, description, metric, target").eq("game_id", game.id).order("position"),
-      supabase.from("reward_nodes").select("game_id, node_index, quests_required, shards, is_mystery").eq("game_id", game.id).order("node_index"),
-    ]);
+    const { data: quests, error: questError } = await supabase
+      .from("quests")
+      .select("id, position, title, description, metric, target")
+      .eq("game_id", game.id)
+      .order("position");
     if (questError) throw questError;
-    if (rewardsError) throw rewardsError;
 
     let completedIds = [];
-    let claimedNodes = [];
-    if (userId) {
-      const completionsQuery = quests.length
-        ? supabase.from("quest_completions").select("quest_id").eq("user_id", userId).in("quest_id", quests.map((quest) => quest.id))
-        : Promise.resolve({ data: [], error: null });
-      const [{ data: completions, error: completionError }, { data: claims, error: claimError }] = await Promise.all([
-        completionsQuery,
-        supabase.from("reward_claims").select("node_index").eq("user_id", userId).eq("game_id", game.id),
-      ]);
+    if (userId && quests.length) {
+      const { data: completions, error: completionError } = await supabase
+        .from("quest_completions")
+        .select("quest_id")
+        .eq("user_id", userId)
+        .in("quest_id", quests.map((quest) => quest.id));
       if (completionError) throw completionError;
-      if (claimError) throw claimError;
       completedIds = completions.map((completion) => completion.quest_id);
-      claimedNodes = claims.map((claim) => claim.node_index);
     }
 
     const completedSet = new Set(completedIds);
-    const claimedSet = new Set(claimedNodes);
-    const completedCount = completedSet.size;
     res.json({
       game_slug: game.slug,
       quests: quests.map((quest) => ({ ...quest, completed: completedSet.has(quest.id) })),
-      reward_nodes: rewardNodes.map((node) => ({
-        node_index: node.node_index,
-        quests_required: node.quests_required,
-        is_mystery: node.is_mystery,
-        claimed: claimedSet.has(node.node_index),
-        claimable: Boolean(userId) && !claimedSet.has(node.node_index) && completedCount >= node.quests_required,
-        ...(claimedSet.has(node.node_index) ? { shards: node.shards } : {}),
-      })),
-      progress: userId ? { completed_quest_ids: completedIds, claimed_nodes: claimedNodes } : null,
+      progress: userId ? { completed_quest_ids: completedIds } : null,
     });
   } catch (error) {
     logQuestError("load", error);
     res.status(500).json({ error: "Could not load quests." });
   }
+});
+
+app.get("/api/platform-quests", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+
+  const authResult = await getSessionUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+
+  try {
+    const { data: games, error: gamesError } = await supabase.from("games").select("id");
+    if (gamesError) throw gamesError;
+    await Promise.all(games.map((game) => recordQuestProgress(authResult.user.id, game.id)));
+
+    const [
+      { count: completedCount, error: completionError },
+      { data: nodes, error: nodeError },
+      { data: claims, error: claimError },
+    ] = await Promise.all([
+      supabase.from("quest_completions").select("quest_id", { count: "exact", head: true }).eq("user_id", authResult.user.id),
+      supabase.from("platform_reward_nodes").select("node_index, quests_required, shards, is_mystery").order("node_index"),
+      supabase.from("platform_reward_claims").select("node_index").eq("user_id", authResult.user.id),
+    ]);
+    if (completionError) throw completionError;
+    if (nodeError) throw nodeError;
+    if (claimError) throw claimError;
+
+    const claimedNodes = new Set(claims.map((claim) => claim.node_index));
+    res.json({
+      completed_count: completedCount || 0,
+      milestones: nodes.map((node) => {
+        const claimed = claimedNodes.has(node.node_index);
+        return {
+          node_index: node.node_index,
+          quests_required: node.quests_required,
+          is_mystery: node.is_mystery,
+          claimed,
+          claimable: !claimed && (completedCount || 0) >= node.quests_required,
+          ...(!node.is_mystery || claimed ? { shards: node.shards } : {}),
+        };
+      }),
+    });
+  } catch (error) {
+    logQuestError("platform load", error);
+    res.status(500).json({ error: "Could not load platform quests." });
+  }
+});
+
+app.post("/api/platform-quests/claim", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!requireSupabase(res)) return;
+  const authResult = await getSessionUser(getBearerToken(req));
+  if (authResult.error) return res.status(authResult.status).json({ error: authResult.error });
+  if (!takeQuestClaimRateLimit(authResult.user.id)) {
+    res.set("Retry-After", "60");
+    return res.status(429).json({ error: "Reward claims are temporarily rate limited." });
+  }
+
+  const nodeIndex = req.body?.node_index;
+  if (!Number.isSafeInteger(nodeIndex) || nodeIndex < 1) {
+    return res.status(400).json({ error: "A valid node_index is required." });
+  }
+
+  const { data, error } = await supabase.rpc("claim_platform_quest_reward", {
+    p_user_id: authResult.user.id,
+    p_node_index: nodeIndex,
+  });
+  if (error) {
+    if (error.code === "P0001") return res.status(409).json({ error: error.message });
+    logQuestError("platform claim", error);
+    return res.status(500).json({ error: "Could not claim this reward." });
+  }
+  const result = Array.isArray(data) ? data[0] : data;
+  res.json({ claimed: result.claimed, shards: result.shards, balance: result.balance });
 });
 
 app.post("/api/quests/:gameSlug/claim", async (req, res) => {
@@ -883,19 +943,41 @@ app.get("/api/games", async (req, res) => {
   }
 
   let ownedGameIds = new Set();
+  let installedGameIds = new Set();
+  let downloadedGameIds = new Set();
   if (userId) {
-    const { data: purchases, error: purchaseError } = await supabase
-      .from("purchases")
-      .select("game_id")
-      .eq("user_id", userId);
+    const [
+      { data: purchases, error: purchaseError },
+      { data: approvedLinks, error: linkError },
+      { data: downloadEvents, error: downloadError },
+    ] = await Promise.all([
+      supabase.from("purchases").select("game_id").eq("user_id", userId),
+      supabase.from("device_links").select("game_id").eq("user_id", userId).eq("status", "approved"),
+      supabase.from("download_events").select("game_id").eq("user_id", userId).eq("allowed", true),
+    ]);
     if (purchaseError) {
       console.error("Could not load game ownership:", purchaseError.message);
       return res.status(503).json({ error: "Game ownership is unavailable. Apply the purchases table in supabase/schema.sql." });
     }
+    if (linkError) {
+      console.error("Could not load installed game states:", linkError.message);
+      return res.status(503).json({ error: "Installed game states are unavailable. Apply supabase/quests-update.sql." });
+    }
+    if (downloadError) {
+      console.error("Could not load download states:", downloadError.message);
+      return res.status(503).json({ error: "Download states are unavailable. Apply supabase/quests-update.sql." });
+    }
     ownedGameIds = new Set(purchases.map((purchase) => purchase.game_id));
+    installedGameIds = new Set(approvedLinks.map((link) => link.game_id));
+    downloadedGameIds = new Set(downloadEvents.map((download) => download.game_id));
   }
 
-  res.json(games.map(({ id, ...game }) => ({ ...game, owned: ownedGameIds.has(id) })));
+  res.json(games.map(({ id, ...game }) => ({
+    ...game,
+    owned: ownedGameIds.has(id),
+    installed: installedGameIds.has(id),
+    downloaded: downloadedGameIds.has(id),
+  })));
 });
 
 app.post("/api/games/:slug/purchase", async (req, res) => {
@@ -962,6 +1044,20 @@ app.get("/api/games/:slug/download", async (req, res) => {
   try {
     const url = await getGameDownloadLink(game.id);
     if (!url) return res.status(404).json({ error: "A PC download is not available for this game." });
+    const { data: rateLimitRows, error: rateLimitError } = await supabase.rpc("request_game_download", {
+      p_user_id: authResult.user.id,
+      p_game_id: game.id,
+    });
+    if (rateLimitError) {
+      console.error("Could not record download link request:", rateLimitError.message);
+      return res.status(503).json({ error: "Download link requests are unavailable. Apply supabase/quests-update.sql." });
+    }
+    const rateLimit = Array.isArray(rateLimitRows) ? rateLimitRows[0] : rateLimitRows;
+    if (!rateLimit?.allowed) {
+      const retryAfter = Math.max(1, Number(rateLimit?.retry_after_seconds) || 60);
+      res.set("Retry-After", String(retryAfter));
+      return res.status(429).json({ error: rateLimit?.message || "Please wait before requesting another download link." });
+    }
     res.json({ url });
   } catch (error) {
     console.error("Could not get game download link:", error.message);

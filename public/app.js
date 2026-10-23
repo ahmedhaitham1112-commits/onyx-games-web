@@ -1,14 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { initializeHeroIntro } from "./hero-intro.js?v=20261013";
+import { initializeHeroIntro } from "./hero-intro.js?v=20261024";
 
 const accountSlot = document.querySelector("[data-account]");
 const gameCodePanel = document.querySelector("[data-game-code]");
+const platformQuestBar = document.querySelector("[data-platform-quests]");
 const authPanel = document.querySelector("[data-auth-panel]");
 const emailAuthForm = document.querySelector("[data-email-auth]");
 const toast = document.querySelector("[data-toast]");
 let initialAuthResolved = false;
 let currentAccessToken = "";
 let gamesLoadSequence = 0;
+let questPanelRequest = 0;
+let platformQuestRequest = 0;
 const visitorPlatform = detectVisitorPlatform();
 const toastMessage = (message) => {
   if (!toast) return;
@@ -55,12 +58,11 @@ async function loadGames(accessToken = currentAccessToken) {
       const includeQuests = container.hasAttribute("data-games");
       container.innerHTML = games.map((game, index) => {
         const quests = questDataBySlug.get(game.slug);
-        const nextQuest = quests?.quests.find((quest) => !quest.completed);
         return `
         <article class="game-card">
           <div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>
           <div class="game-card-copy"><div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>
-            ${includeQuests && quests ? `<p class="quest-next">${nextQuest ? escapeHtml(nextQuest.title) : "All quests complete. Nicely done."}</p>` : ""}
+            ${!includeQuests && quests ? renderQuestPreview(quests) : ""}
             ${gameDownloadOptions(game, visitorPlatform)}
           </div>
           ${includeQuests && quests ? `<div class="game-quests" data-quest-panel data-game-slug="${escapeHtml(game.slug)}">${renderQuestPanel(quests, Boolean(accessToken))}</div>` : ""}
@@ -83,28 +85,54 @@ function renderQuestPanel(data, isLoggedIn) {
       <span class="quest-check" aria-hidden="true">${quest.completed ? "✓" : ""}</span>
       <span><strong>${escapeHtml(quest.title)}</strong><small>${escapeHtml(quest.description)}</small></span>
     </li>`).join("");
-  const rewards = data.reward_nodes.map((node) => {
-    const isGrandPrize = node.quests_required >= data.quests.length;
-    const mysteryMark = isGrandPrize ? "???" : "?";
-    const mark = node.claimed ? "✓" : node.is_mystery ? mysteryMark : String(node.node_index);
-    const rewardCopy = node.claimed ? `${node.shards} SHARDS` : `${node.quests_required} QUESTS`;
-    const claimButton = node.claimable
-      ? `<button class="quest-claim" type="button" data-quest-claim data-node-index="${node.node_index}">Claim</button>`
-      : "";
-    return `<div class="quest-reward${node.claimable ? " is-claimable" : " is-locked"}${node.claimed ? " is-claimed" : ""}${isGrandPrize ? " is-grand-prize" : ""}">
-      <span class="reward-mark" aria-hidden="true">${mark}</span><span class="reward-copy">${escapeHtml(rewardCopy)}</span>${claimButton}
-    </div>`;
-  }).join("");
-
   return `<div class="quest-panel-head"><span class="eyebrow">QUESTS</span><span class="quest-count">${completedCount}/${data.quests.length}</span></div>
     <div class="quest-track" style="--quest-count:${Math.max(1, data.quests.length)}" role="img" aria-label="${completedCount} of ${data.quests.length} quests complete">${segments}</div>
     <ol class="quest-list">${questList}</ol>
-    <div class="quest-rewards">${rewards}</div>
     ${isLoggedIn ? "" : '<p class="quest-signin-prompt">Sign in to track progress and earn shards.</p>'}`;
+}
+
+function renderQuestPreview(data) {
+  const quests = data.quests.slice(0, 3);
+  return `<div class="quest-preview"><p>3 quick quests</p><ul>${quests.map((quest) => `<li>${escapeHtml(quest.title)}</li>`).join("")}</ul></div>`;
+}
+
+function renderPlatformQuestBar(data) {
+  const completedCount = Number(data.completed_count || 0);
+  const milestoneProgress = Math.min(completedCount, 10);
+  const progress = milestoneProgress * 10;
+  const milestones = data.milestones.map((milestone) => {
+    const status = milestone.claimed ? "is-claimed" : milestone.claimable ? "is-claimable" : "is-locked";
+    const reward = milestone.claimed ? `${milestone.shards} SHARDS` : milestone.is_mystery ? "???" : `${milestone.shards} SHARDS`;
+    const indicator = milestone.claimed
+      ? '<span class="milestone-check" aria-label="Claimed">✓</span>'
+      : `<img src="/shard.svg" width="19" height="19" alt="">`;
+    const claim = milestone.claimable
+      ? `<button class="platform-claim" type="button" data-platform-claim data-node-index="${milestone.node_index}">Claim</button>`
+      : "";
+    return `<div class="platform-milestone ${status}" style="--milestone-position:${milestone.quests_required * 10}%" data-node-index="${milestone.node_index}">
+      <div class="milestone-pin">${indicator}</div>
+      <span class="milestone-reward">${escapeHtml(reward)}</span>
+      <span class="milestone-label">${milestone.quests_required}</span>
+      ${claim}
+    </div>`;
+  }).join("");
+
+  return `<div class="platform-quest-card">
+    <div class="platform-quest-badge" aria-label="${completedCount} quests completed"><span>${completedCount}</span></div>
+    <div class="platform-quest-content">
+      <div class="platform-quest-heading"><p class="eyebrow">DAILY QUESTS</p><span>PLATFORM MILESTONES</span></div>
+      <div class="platform-track" role="img" aria-label="${Math.min(completedCount, 10)} of 10 quests toward milestones">
+        <span class="platform-track-fill" style="width:${progress}%"></span>
+        ${milestones}
+      </div>
+      <p class="platform-quest-progress">${milestoneProgress} of 10 quests completed</p>
+    </div>
+  </div>`;
 }
 
 async function refreshQuestPanels() {
   const panels = [...document.querySelectorAll("[data-quest-panel]")];
+  const request = ++questPanelRequest;
   await Promise.all(panels.map(async (panel) => {
     try {
       const response = await fetch(`/api/quests/${encodeURIComponent(panel.dataset.gameSlug)}`, {
@@ -112,26 +140,55 @@ async function refreshQuestPanels() {
       });
       if (!response.ok) return;
       const data = await response.json();
+      if (request !== questPanelRequest) return;
       panel.innerHTML = renderQuestPanel(data, Boolean(currentAccessToken));
-      const nextQuest = data.quests.find((quest) => !quest.completed);
-      const summary = panel.closest(".game-card")?.querySelector(".quest-next");
-      if (summary) summary.textContent = nextQuest?.title || "All quests complete. Nicely done.";
     } catch {
       // The last successfully rendered progress remains visible while offline.
     }
   }));
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") void refreshQuestPanels();
+async function refreshPlatformQuestBar() {
+  if (!platformQuestBar) return;
+  if (!currentAccessToken) {
+    platformQuestBar.hidden = true;
+    return;
+  }
+
+  const request = ++platformQuestRequest;
+  try {
+    const response = await fetch("/api/platform-quests", {
+      headers: { Authorization: `Bearer ${currentAccessToken}` },
+    });
+    if (!response.ok) throw new Error("Could not refresh platform quests.");
+    const data = await response.json();
+    if (request !== platformQuestRequest) return;
+    platformQuestBar.innerHTML = renderPlatformQuestBar(data);
+    platformQuestBar.hidden = false;
+  } catch {
+    // Keep the last successful milestone state visible while offline.
+  }
+}
+
+async function refreshLiveQuestState() {
+  await refreshQuestPanels();
+  await refreshPlatformQuestBar();
+}
+
+window.addEventListener("onyx:auth-change", (event) => {
+  currentAccessToken = event.detail?.accessToken || "";
+  void refreshLiveQuestState();
 });
-window.addEventListener("focus", () => void refreshQuestPanels());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") void refreshLiveQuestState();
+});
+window.addEventListener("focus", () => void refreshLiveQuestState());
 window.setInterval(() => {
-  if (document.visibilityState === "visible") void refreshQuestPanels();
-}, 20_000);
+  if (document.visibilityState === "visible") void refreshLiveQuestState();
+}, 10_000);
 
 document.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-quest-claim]");
+  const button = event.target.closest("[data-platform-claim]");
   if (!button || button.disabled) return;
   if (!currentAccessToken) {
     toastMessage("Sign in to claim shard rewards.");
@@ -140,8 +197,7 @@ document.addEventListener("click", async (event) => {
 
   button.disabled = true;
   try {
-    const panel = button.closest("[data-quest-panel]");
-    const response = await fetch(`/api/quests/${encodeURIComponent(panel.dataset.gameSlug)}/claim`, {
+    const response = await fetch("/api/platform-quests/claim", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentAccessToken}` },
       body: JSON.stringify({ node_index: Number(button.dataset.nodeIndex) }),
@@ -149,10 +205,10 @@ document.addEventListener("click", async (event) => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not claim this reward.");
     window.dispatchEvent(new CustomEvent("onyx:wallet-updated", { detail: { balance: result.balance } }));
-    const reward = button.closest(".quest-reward");
-    reward?.classList.add("is-claiming");
+    platformQuestBar.classList.add("is-claiming");
+    window.setTimeout(() => platformQuestBar?.classList.remove("is-claiming"), 560);
     toastMessage(result.claimed ? `You claimed ${result.shards} shards.` : "This reward was already claimed.");
-    window.setTimeout(() => void refreshQuestPanels(), 520);
+    await refreshPlatformQuestBar();
   } catch (error) {
     toastMessage(error.message || "Could not claim this reward.");
     button.disabled = false;
@@ -160,6 +216,12 @@ document.addEventListener("click", async (event) => {
 });
 
 function gameActionButton(game) {
+  if (game.installed) {
+    return `<div class="download-state"><strong title="A device signed in with this account. The site cannot verify whether the game remains installed.">Installed</strong><small>Device signed in</small><a class="download-state-link" href="/library.html#how-to-uninstall">How to uninstall</a></div>`;
+  }
+  if (game.downloaded) {
+    return `<div class="download-state"><strong title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</strong><small>Link requested</small><button class="download-state-link" type="button" data-game-action="download" data-game-slug="${escapeHtml(game.slug)}">Download again</button></div>`;
+  }
   const action = game.owned ? "download" : "get";
   const label = game.owned ? "Download" : "Get";
   return `<button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label} ${escapeHtml(game.name)} for Windows / PC">${label} <span aria-hidden="true">${game.owned ? "↓" : "+"}</span></button>`;
@@ -230,6 +292,11 @@ document.addEventListener("click", async (event) => {
       await loadGames();
       return;
     }
+    button.outerHTML = gameActionButton({
+      slug: button.dataset.gameSlug,
+      installed: false,
+      downloaded: true,
+    });
     window.location.assign(result.url);
   } catch (error) {
     toastMessage(error.message || "Could not complete the game request.");
@@ -498,15 +565,17 @@ async function initializeAuth() {
       element.textContent = `Signed in as ${result.user.username}. Your game scores are ready to sync.`;
     });
 
-    try {
-      const codeResponse = await fetch("/api/session/code", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const codeResult = await codeResponse.json();
-      if (!codeResponse.ok) throw new Error(codeResult.error || "Could not create a game login code.");
-      renderGameCode(codeResult.code);
-    } catch (error) {
-      toastMessage(error.message);
+    if (gameCodePanel) {
+      try {
+        const codeResponse = await fetch("/api/session/code", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const codeResult = await codeResponse.json();
+        if (!codeResponse.ok) throw new Error(codeResult.error || "Could not create a game login code.");
+        renderGameCode(codeResult.code);
+      } catch (error) {
+        toastMessage(error.message);
+      }
     }
   }
 }

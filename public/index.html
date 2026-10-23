@@ -9,8 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/onyx-logo.png">
-    <link rel="stylesheet" href="/styles.css?v=20261013">
-    <script type="module" src="/app.js?v=20261013"></script>
+    <link rel="preload" href="/shard.svg" as="image" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css?v=20261024">
+    <script type="module" src="/app.js?v=20261024"></script>
   </head>
   <body class="home-page auth-pending">
     <div class="auth-loading" data-auth-loading role="status" aria-label="Loading your account">
@@ -26,6 +27,7 @@
     </header>
 
     <main>
+      <section class="platform-quest-section" data-platform-quests hidden aria-label="Platform quest milestones"></section>
       <section class="hero" aria-labelledby="auth-heading">
         <div class="hero-copy">
           <p class="eyebrow"><span class="status-dot"></span> INDEPENDENT GAMES, NO NOISE</p>
@@ -53,12 +55,6 @@
             </form>
           </section>
           <p class="auth-note" data-auth-note>Sign in to save your scores across games.</p>
-          <section class="game-login-code" data-game-code aria-labelledby="game-code-heading" hidden>
-            <div><p class="eyebrow">DESKTOP GAME</p><h2 id="game-code-heading">Game Login Code</h2></div>
-            <code data-game-code-value></code>
-            <button class="copy-code" type="button" data-copy-game-code aria-label="Copy game login code">Copy</button>
-            <p class="code-expiry">One-time code · expires in 5 minutes</p>
-          </section>
         </div>
         <div class="hero-art" aria-label="A sword strikes an onyx stone as shards fall behind the ONYX GAMES title" role="img">
           <div class="intro-scene">
@@ -87,6 +83,6 @@
       <span class="footer-year">© <span data-year></span> ONYX GAMES</span>
     </footer>
     <div class="toast" role="status" aria-live="polite" data-toast></div>
-    <script type="module" src="/site.js?v=20261013"></script>
+    <script type="module" src="/site.js?v=20261024"></script>
   </body>
 </html>

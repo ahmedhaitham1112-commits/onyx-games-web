@@ -32,7 +32,7 @@ button { font: inherit; }
 .account-label { color: var(--muted); }
 .account-name { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
 .wallet-balance { min-height: 30px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #a881ff45; border-radius: 3px; background: #1a1128; color: #e4d3ff; font: 11px var(--mono); }
-.wallet-balance img { width: 19px; height: 19px; display: block; filter: drop-shadow(0 0 5px #a881ff88); }
+.wallet-balance svg { width: 19px; height: 19px; display: block; filter: drop-shadow(0 0 5px #a881ff88); }
 .sign-out { padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; }
 .hero { display: grid; grid-template-columns: 1fr 0.91fr; min-height: 514px; padding: 62px 7.1% 58px; gap: 5.5%; align-items: center; }
 .hero-copy { padding: 12px 0 0; }
@@ -112,12 +112,20 @@ h1, h2, p { margin-top: 0; }
 .game-card-copy { padding: 17px 17px 15px; }
 .game-card-copy .eyebrow { font-size: 9px; }
 .game-card-copy h2 { min-height: 24px; margin: 6px 0 17px; font-size: 16px; line-height: 1.35; }
-.game-card-copy .quest-next { min-height: 18px; margin: -10px 0 13px; color: #c7b5df; font-size: 10px; line-height: 1.5; }
+.quest-preview { margin: -5px 0 15px; color: #d7c8e9; }
+.quest-preview p { margin: 0 0 6px; color: #c39af0; font: 9px var(--mono); }
+.quest-preview ul { margin: 0; padding: 0; display: grid; gap: 4px; list-style: none; }
+.quest-preview li { color: #a89bb6; font-size: 9px; line-height: 1.4; }
 .download-actions { display: flex; gap: 7px; flex-wrap: wrap; }
 .download-link, .download-unavailable { min-height: 31px; padding: 0 9px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 2px; font: 9px var(--mono); }
 .download-link { border-color: var(--ink); }
 .download-link span { color: var(--coral); font-size: 13px; }
 .download-unavailable { color: #969990; }
+.download-state { min-height: 31px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 11px; }
+.download-state strong { color: #e4d3ff; font: 10px var(--mono); }
+.download-state small { color: #8f829d; font-size: 8px; }
+.download-state-link { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 9px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.download-state-link:hover { color: #ead9ff; }
 .loading-line, .empty-state { padding: 28px 0; color: var(--muted); font-size: 12px; }
 .loading-dots { color: var(--coral); animation: blink 1s steps(2, start) infinite; }
 .game-quests { padding: 0 17px 17px; }
@@ -133,22 +141,46 @@ h1, h2, p { margin-top: 0; }
 .quest-row.is-complete .quest-check { border-color: #a881ff; background: #6e43a8; }
 .quest-row strong { display: block; font-size: 10px; font-weight: 600; line-height: 1.4; }
 .quest-row small { display: block; margin-top: 2px; color: #9d93a9; font-size: 9px; line-height: 1.4; }
-.quest-rewards { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 7px; margin-top: 13px; padding-top: 11px; border-top: 1px solid #c6a8ff1c; }
-.quest-reward { min-width: 0; min-height: 63px; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 1px solid #453c50; border-radius: 3px; background: #100d16; text-align: center; transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease; }
-.reward-mark { color: #77707e; font: 700 17px var(--sans); line-height: 1; }
-.reward-copy { color: #81788b; font: 8px var(--mono); }
-.quest-reward.is-claimable { border-color: #a881ff; background: #211630; box-shadow: 0 0 16px #a15bff21; }
-.quest-reward.is-claimable .reward-mark { color: #e3caff; text-shadow: 0 0 12px #bf8cff; }
-.quest-reward.is-grand-prize.is-claimable .reward-mark { font-size: 14px; }
-.quest-reward.is-claimed { border-color: #815cac; background: #1e152b; }
-.quest-reward.is-claimed .reward-mark { color: #d2b0ff; }
-.quest-claim { min-height: 25px; margin-top: 3px; padding: 0 9px; border: 1px solid #a881ff; border-radius: 2px; background: #7848b8; color: white; cursor: pointer; font-size: 9px; font-weight: 700; }
-.quest-claim:hover { background: #925bd3; box-shadow: 0 0 12px #a15bff50; }
-.quest-claim:disabled { cursor: wait; opacity: .65; }
-.quest-reward.is-claiming { animation: shard-claim 500ms cubic-bezier(.2,.8,.25,1) both; }
 .quest-signin-prompt { margin: 10px 0 0; color: #b6a8c8; font-size: 9px; line-height: 1.5; }
-@keyframes shard-claim { 35% { transform: translateY(-5px) scale(1.04); box-shadow: 0 0 28px #bb85ff99; } 100% { transform: translateY(0) scale(1); } }
+.platform-quest-section { margin: 20px 7.1% 25px; }
+.platform-quest-card { min-width: 0; padding: 16px 20px; display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 19px; border: 1px solid #a881ff47; border-radius: 7px; background: radial-gradient(ellipse at 72% 0, #512d7629, transparent 52%), linear-gradient(120deg, #171020, #0e0b14 70%); box-shadow: 0 12px 36px #0004, inset 0 1px #ffffff09; }
+.platform-quest-badge { position: relative; width: 68px; aspect-ratio: 1; display: grid; place-items: center; isolation: isolate; overflow: hidden; border: 1px solid #d7b9ff99; border-radius: 50%; background: conic-gradient(from 25deg, #412266, #a875ed, #412266, #8150bc, #d5b4ff, #412266); box-shadow: inset 0 0 0 4px #160f20, 0 0 24px #a15bff45; }
+.platform-quest-badge::before { position: absolute; z-index: -1; inset: 8px; content: ""; border: 1px solid #ebd8ff66; border-radius: 50%; background: conic-gradient(from 0deg, #ffffff1c 0 12%, transparent 12% 25%, #ffffff13 25% 38%, transparent 38% 50%, #ffffff1c 50% 62%, transparent 62% 75%, #ffffff12 75% 88%, transparent 88%); }
+.platform-quest-badge span { color: #fff; font-size: 27px; font-weight: 700; line-height: 1; text-shadow: 0 2px 9px #160a27; }
+.platform-quest-content { min-width: 0; }
+.platform-quest-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.platform-quest-heading > span { color: #7e718d; font: 8px var(--mono); letter-spacing: .08em; }
+.platform-quest-heading .eyebrow { color: #dfcaff; font-size: 9px; }
+.platform-track { position: relative; height: 82px; margin: 9px 0 0; }
+.platform-track::before, .platform-track-fill { position: absolute; top: 13px; left: 0; height: 3px; border-radius: 3px; }
+.platform-track::before { right: 0; content: ""; background: #3a3047; }
+.platform-track-fill { max-width: 100%; background: linear-gradient(90deg, #7744ba, #d3aaff); box-shadow: 0 0 11px #a15bff91; transition: width 350ms ease; }
+.platform-milestone { position: absolute; top: 0; left: var(--milestone-position); min-width: 49px; display: grid; justify-items: center; align-content: start; row-gap: 1px; transform: translateX(-50%); }
+.platform-milestone:last-child { transform: translateX(-100%); }
+.milestone-pin { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #5a4c68; border-radius: 50%; background: #1a1422; }
+.milestone-pin img { width: 18px; height: 18px; filter: grayscale(1) opacity(.4); }
+.milestone-reward { color: #827889; font: 8px var(--mono); white-space: nowrap; }
+.milestone-label { color: #96899f; font: 9px var(--mono); }
+.platform-milestone.is-claimable .milestone-pin { border-color: #d3aaff; background: #57327d; box-shadow: 0 0 15px #b87aff9c; animation: milestone-glow 1.8s ease-in-out infinite; }
+.platform-milestone.is-claimable .milestone-pin img { filter: drop-shadow(0 0 4px #e0c3ff); }
+.platform-milestone.is-claimable .milestone-reward,
+.platform-milestone.is-claimable .milestone-label { color: #eadbff; }
+.platform-milestone.is-claimed .milestone-pin { border-color: #b88be8; background: #7044a0; box-shadow: 0 0 11px #a15bff5c; }
+.milestone-check { color: #fff; font-size: 15px; line-height: 1; }
+.platform-milestone.is-claimed .milestone-reward { color: #d9c1f2; }
+.platform-claim { min-height: 21px; margin-top: 2px; padding: 0 7px; border: 1px solid #c69aff; border-radius: 3px; background: #7948b4; color: white; cursor: pointer; font-size: 8px; font-weight: 700; }
+.platform-claim:hover { background: #925bd3; box-shadow: 0 0 12px #a15bff8a; }
+.platform-claim:disabled { cursor: wait; opacity: .65; }
+.platform-quest-progress { margin: 1px 0 0; color: #b5a6c5; font-size: 10px; }
+.platform-quest-section.is-claiming { animation: platform-claim-burst 520ms cubic-bezier(.2,.8,.25,1); }
+.uninstall-help { margin-top: 28px; padding: 17px 19px; border: 1px solid #c6a8ff24; border-radius: 4px; background: #100d17; }
+.uninstall-help h2 { margin: 7px 0; color: #e8d9f9; font-size: 15px; font-weight: 600; }
+.uninstall-help p:last-child { max-width: 640px; margin: 0; color: #a89bb6; font-size: 11px; line-height: 1.65; }
+.uninstall-help strong { color: #e2d1f5; }
+@keyframes milestone-glow { 50% { box-shadow: 0 0 21px #c28affc7; } }
+@keyframes platform-claim-burst { 35% { transform: scale(1.012); filter: brightness(1.35); } 100% { transform: scale(1); filter: brightness(1); } }
 .library-main { padding: 59px 7.1% 70px; }
+.library-main .platform-quest-section { margin-inline: 0; }
 .library-intro { min-height: 280px; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
 .library-intro h1 { margin: 19px 0 32px; font-size: 71px; }
 .library-description { width: 300px; margin: 48px 5% 0 0; color: #62665f; font-size: 13px; line-height: 1.9; }
@@ -245,6 +277,9 @@ body { min-height: 100vh; background: linear-gradient(180deg, #09070f99, #09070f
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .intro-title { transition: none; }
+  .platform-track-fill { transition: none; }
+  .platform-milestone.is-claimable .milestone-pin,
+  .platform-quest-section.is-claiming { animation: none; }
 }
 
 .home-page.auth-required { min-height: 100vh; min-height: 100dvh; }
@@ -396,6 +431,30 @@ img, picture, canvas, video { max-width: 100%; }
   .library-main { padding-top: 34px; }
   .library-intro h1 { font-size: clamp(3rem, 14vw, 4.2rem); }
   .library-list-head { gap: 12px; }
+  .platform-quest-section { margin: 14px 14px 22px; }
+  .library-main .platform-quest-section { margin-inline: 0; }
+  .platform-quest-card { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 13px 10px 11px; }
+  .platform-quest-badge { width: 46px; }
+  .platform-quest-badge span { font-size: 19px; }
+  .platform-quest-heading > span { font-size: 7px; }
+  .platform-quest-heading .eyebrow { font-size: 8px; }
+  .platform-track { height: 81px; margin-top: 9px; }
+  .platform-milestone { min-width: 40px; }
+  .milestone-pin { width: 25px; height: 25px; }
+  .milestone-pin img { width: 16px; height: 16px; }
+  .milestone-reward { font-size: 7px; }
+  .platform-claim { min-height: 20px; padding-inline: 5px; font-size: 7px; }
+  .platform-quest-progress { font-size: 9px; }
+  .uninstall-help { margin-top: 22px; padding: 15px; }
+}
+
+@media (max-width: 350px) {
+  .platform-quest-section { margin-inline: 10px; }
+  .platform-quest-card { grid-template-columns: 40px minmax(0, 1fr); gap: 7px; padding-inline: 8px; }
+  .platform-quest-badge { width: 39px; }
+  .platform-quest-badge span { font-size: 17px; }
+  .milestone-reward { font-size: 6px; }
+  .platform-milestone { min-width: 35px; }
 }
 
 .game-download-area { display: grid; justify-items: start; gap: 5px; }

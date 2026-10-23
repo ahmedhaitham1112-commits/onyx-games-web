@@ -9,8 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/onyx-logo.png">
-    <link rel="stylesheet" href="/styles.css?v=20261016">
-    <script type="module" src="/app.js?v=20261016"></script>
+    <link rel="preload" href="/shard.svg" as="image" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css?v=20261024">
+    <script type="module" src="/app.js?v=20261024"></script>
   </head>
   <body>
     <header class="site-header">
@@ -23,6 +24,7 @@
     </header>
 
     <main class="library-main">
+      <section class="platform-quest-section" data-platform-quests hidden aria-label="Platform quest milestones"></section>
       <section class="library-intro">
         <div><p class="eyebrow"><span class="status-dot"></span> THE ONYX COLLECTION</p><h1>Game<br><span>library.</span></h1></div>
         <p class="library-description">A growing collection of small, singular ideas. Choose a game and make it yours.</p>
@@ -30,6 +32,11 @@
       <section class="library-list" aria-label="Available games">
         <div class="library-list-head"><span>AVAILABLE NOW</span><span data-game-count>— TITLES</span></div>
         <div data-games class="game-grid"><div class="loading-line">Loading games<span class="loading-dots">...</span></div></div>
+      </section>
+      <section class="uninstall-help" id="how-to-uninstall" aria-labelledby="uninstall-help-title">
+        <p class="eyebrow">INSTALLED ON YOUR DEVICE?</p>
+        <h2 id="uninstall-help-title">How to uninstall</h2>
+        <p>On Windows, open <strong>Settings</strong>, then <strong>Apps</strong>, choose <strong>Stare at a Guy Simulator</strong>, and select <strong>Uninstall</strong>.</p>
       </section>
       <section class="library-signin">
         <div><p class="eyebrow">YOUR SCORES, YOURS TO KEEP</p><h2>Pick up where you left off.</h2></div>
@@ -48,6 +55,6 @@
       <span class="footer-year">© <span data-year></span> ONYX GAMES</span>
     </footer>
     <div class="toast" role="status" aria-live="polite" data-toast></div>
-    <script type="module" src="/site.js?v=20261013"></script>
+    <script type="module" src="/site.js?v=20261024"></script>
   </body>
 </html>

@@ -8,15 +8,16 @@ An Express website and API backed by Supabase Auth and Postgres. The browser use
 2. Create a Supabase project and follow [Google OAuth setup](#google-oauth-setup). Enable email sign-ups in Supabase Authentication settings if they are disabled.
 3. In the Supabase SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql). Re-run it on existing projects to apply the username migration and Auth profile trigger.
 4. Run [`supabase/device-link.sql`](supabase/device-link.sql) in the Supabase SQL Editor to enable device linking and long-lived game sessions.
-5. Copy `.env.example` to `.env` and fill in the project URL, anon key, and service-role key from Supabase Project Settings → API. In PowerShell, use `Copy-Item .env.example .env`.
-6. From the project folder, install and start the app:
+5. Run [`supabase/quests.sql`](supabase/quests.sql) for per-game quests, then run [`supabase/quests-update.sql`](supabase/quests-update.sql) to add platform-wide milestones and download tracking. The update migration keeps existing quest completions and shard-ledger rows.
+6. Copy `.env.example` to `.env` and fill in the project URL, anon key, and service-role key from Supabase Project Settings → API. In PowerShell, use `Copy-Item .env.example .env`.
+7. From the project folder, install and start the app:
 
    ```powershell
    npm.cmd install
    npm.cmd run dev
    ```
 
-6. Open <http://localhost:3000>. Use `npm.cmd start` for a normal (non-watch) start.
+8. Open <http://localhost:3000>. Use `npm.cmd start` for a normal (non-watch) start.
 
 The game appears in the library after the schema is applied. PC downloads require the user to select **Get** first; the server checks ownership before returning the configured PC URL. Set the PC URL in Supabase:
 
@@ -40,9 +41,9 @@ The included [`render.yaml`](render.yaml) defines a Render web service using its
 
 ## API
 
-- `GET /api/games` returns the game catalog and, when authenticated, per-user ownership. It does not expose the PC download URL.
+- `GET /api/games` returns the game catalog and, when authenticated, per-user ownership, requested-download, and device-link states. It does not expose the PC download URL.
 - `POST /api/games/:slug/purchase` requires `Authorization: Bearer <Supabase access token>` and adds the currently free game to the user's library.
-- `GET /api/games/:slug/download` requires the same bearer token and returns the download URL only when the user owns the game.
+- `GET /api/games/:slug/download` requires the same bearer token and returns the download URL only when the user owns the game. Requests are limited to one per 60 seconds and five per day per user, and are logged in `download_events`.
 - `POST /api/login` accepts `{ "access_token": "<Supabase access token>" }`. It verifies the token, upserts the local profile, and returns `{ "session_token": "...", "user": { ... } }`. The session token is the Supabase access token; the game client should treat it as a bearer secret and send it as `session_token` to score submission.
 - `GET /api/users/username-available?username=<username>` checks whether a username is available for signup.
 - `GET /api/session/code` requires `Authorization: Bearer <Supabase access token>` and returns an eight-character, one-time code that expires after five minutes. The website displays this code after Google sign-in.
@@ -54,3 +55,4 @@ The included [`render.yaml`](render.yaml) defines a Render web service using its
 - `GET /api/session/me`, score submission, game ownership, and downloads accept either a game session token or a Supabase access token. Game session tokens are stored only as SHA-256 hashes.
 - `POST /api/scores/submit` accepts `{ "session_token": "...", "game_slug": "stare-at-a-guy-simulator", "score": 123 }`. The supplied score replaces the user's current total for that game.
 - `GET /api/scores/leaderboard?game=stare-at-a-guy-simulator` returns the top 10 `{ "username", "score" }` entries in descending score order.
+- `GET /api/platform-quests` requires authentication and returns cross-game progress and milestone states. `POST /api/platform-quests/claim` accepts `{ "node_index": 1 }` and claims a milestone atomically.

@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL } from "./site-config.js?v=20261013";
+import { CONTACT_EMAIL } from "./site-config.js?v=20261024";
 
 let walletAccessToken = readCachedAccessToken();
 let walletRequest = 0;
@@ -42,7 +42,7 @@ function ensureWalletWidget() {
   widget.className = "wallet-balance";
   widget.dataset.walletWidget = "";
   widget.hidden = true;
-  widget.innerHTML = '<img src="/shard.svg" alt=""><span data-wallet-amount>0</span>';
+  widget.innerHTML = '<svg width="19" height="19" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M18 2.8 29.4 8l4.1 12.2L21 33.1l-8.8-.8L2.5 20.1 6.1 8.5 18 2.8Z" fill="url(#wallet-shard)" stroke="#E8D6FF" stroke-width="1.2"/><path d="m18 2.8 1.1 12.8L6.1 8.5 18 2.8Z" fill="#F2E8FF"/><path d="m19.1 15.6 14.4 4.6L21 33.1 19.1 15.6Z" fill="#A36AFF"/><path d="m19.1 15.6 13.9 4.1L29.4 8l-10.3 7.6Z" fill="#D7B9FF"/><path d="m6.1 8.5 13 7.1-7 16.7-9.6-12.2L6.1 8.5Z" fill="#7542BD"/><path d="m19.1 15.6 1.9 17.5-8.9-.8 7-16.7Z" fill="#C18CFF"/><path d="m6.1 8.5 11.9-5.7 1.1 12.8-13-7.1Z" fill="#D9C0FF"/><defs><linearGradient id="wallet-shard" x1="5" x2="31" y1="5" y2="31" gradientUnits="userSpaceOnUse"><stop stop-color="#F3E9FF"/><stop offset=".42" stop-color="#A66AFF"/><stop offset="1" stop-color="#57268F"/></linearGradient></defs></svg><span data-wallet-amount>0</span>';
   if (accountArea) slot.prepend(widget);
   else slot.replaceChildren(widget);
   return widget;
@@ -77,20 +77,34 @@ window.addEventListener("onyx:auth-change", (event) => {
   void refreshWallet();
 });
 window.addEventListener("onyx:wallet-updated", (event) => {
+  walletRequest += 1;
   const widget = ensureWalletWidget();
   if (!widget) return;
   widget.querySelector("[data-wallet-amount]").textContent = Number(event.detail?.balance || 0).toLocaleString();
   widget.hidden = !walletAccessToken;
 });
 window.addEventListener("focus", () => void refreshWallet());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") void refreshWallet();
+});
 window.setInterval(() => {
   if (document.visibilityState === "visible") void refreshWallet();
-}, 20_000);
+}, 10_000);
 void refreshWallet();
 
+const noticeDismissalKey = "onyx-cookie-notice-dismissed";
 let noticeDismissed = false;
 try {
-  noticeDismissed = localStorage.getItem("onyx-cookie-notice-dismissed") === "true";
+  const storedDismissal = localStorage.getItem(noticeDismissalKey);
+  if (storedDismissal === "true") {
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 12);
+    localStorage.setItem(noticeDismissalKey, String(expiresAt.getTime()));
+    noticeDismissed = true;
+  } else if (storedDismissal) {
+    const expiresAt = Number(storedDismissal);
+    noticeDismissed = Number.isFinite(expiresAt) && expiresAt > 0;
+  }
 } catch {
   noticeDismissed = false;
 }
@@ -102,7 +116,9 @@ if (!noticeDismissed) {
   notice.innerHTML = '<p>We use essential storage for sign-in and settings only. No ads or tracking. <a href="/cookies.html">Cookie details</a></p><button type="button" aria-label="Dismiss cookie notice">Got it</button>';
   notice.querySelector("button").addEventListener("click", () => {
     try {
-      localStorage.setItem("onyx-cookie-notice-dismissed", "true");
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 12);
+      localStorage.setItem(noticeDismissalKey, String(expiresAt.getTime()));
     } catch {
       // The notice still dismisses for this page when storage is unavailable.
     }
