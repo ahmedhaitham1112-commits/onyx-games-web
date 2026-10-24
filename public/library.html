@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/onyx-logo.png">
     <link rel="preload" href="/shard.svg" as="image" type="image/svg+xml">
-    <link rel="stylesheet" href="/styles.css?v=20261024-5">
-    <script type="module" src="/app.js?v=20261024-5"></script>
+    <link rel="stylesheet" href="/styles.css?v=20261024-6">
+    <script type="module" src="/app.js?v=20261024-6"></script>
   </head>
   <body>
     <header class="site-header">
@@ -70,13 +70,12 @@
         <aside class="library-sidebar" aria-label="Library filters">
           <p class="eyebrow">YOUR COLLECTION</p>
           <label class="library-search">
-            <span class="visually-hidden">Search your games</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
-            <input type="search" placeholder="Search your games" autocomplete="off" data-library-search>
+            <input type="search" aria-label="Search your games" placeholder="Search your games" autocomplete="off" data-library-search>
           </label>
           <nav class="library-filters" aria-label="Filter games">
             <button class="library-filter is-active" type="button" data-library-filter="all" aria-pressed="true"><span>All games</span><span data-library-all-count>0</span></button>
-            <button class="library-filter" type="button" data-library-filter="downloaded" aria-pressed="false"><span>Installed / Downloaded</span><span data-library-downloaded-count>0</span></button>
+            <button class="library-filter" type="button" data-library-filter="downloaded" aria-pressed="false"><span>Installed</span><span data-library-downloaded-count>0</span></button>
           </nav>
           <a class="library-discover-link" href="/">Discover games <span aria-hidden="true">↗</span></a>
         </aside>
@@ -116,6 +115,6 @@
         <p>Settings → Apps → Stare at a Guy Simulator → Uninstall</p>
       </div>
     </dialog>
-    <script type="module" src="/site.js?v=20261024-4"></script>
+    <script type="module" src="/site.js?v=20261024-6"></script>
   </body>
 </html>

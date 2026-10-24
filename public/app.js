@@ -23,6 +23,8 @@ let currentAccessToken = "";
 let gamesLoadSequence = 0;
 let questPanelRequest = 0;
 let platformQuestRequest = 0;
+let lastQuestRefreshAt = 0;
+let lastGameRefreshAt = 0;
 const visitorPlatform = detectVisitorPlatform();
 const toastMessage = (message) => {
   if (!toast) return;
@@ -63,7 +65,7 @@ async function loadGames(accessToken = currentAccessToken) {
     if (!response.ok) throw new Error("Game library is unavailable.");
     const games = await response.json();
     if (requestSequence !== gamesLoadSequence) return;
-    const questDataBySlug = new Map();
+    const questDataBySlug = new Map(libraryState.questsBySlug);
     await Promise.all(games.map(async (game) => {
       try {
         const questResponse = await fetch(`/api/quests/${encodeURIComponent(game.slug)}`, {
@@ -93,7 +95,7 @@ async function loadGames(accessToken = currentAccessToken) {
         return;
       }
       const includeQuests = false;
-      container.innerHTML = games.map((game, index) => {
+      const content = games.map((game, index) => {
         const quests = questDataBySlug.get(game.slug);
         const homeDescription = "Hold your gaze, build your score, and see how long you can keep staring.";
         return `
@@ -110,6 +112,7 @@ async function loadGames(accessToken = currentAccessToken) {
           ${includeQuests && quests ? `<div class="game-quests" data-quest-panel data-game-slug="${escapeHtml(game.slug)}">${renderQuestPanel(quests, Boolean(accessToken))}</div>` : ""}
         </article>`;
       }).join("");
+      if (container.innerHTML !== content) container.innerHTML = content;
     });
   } catch (error) {
     if (requestSequence !== gamesLoadSequence) return;
@@ -121,7 +124,9 @@ async function loadGames(accessToken = currentAccessToken) {
 
 function renderLibraryGames(games, questsBySlug) {
   if (!document.querySelector("[data-games]")) return;
-  libraryState.games = games.filter((game) => game.owned || game.downloaded);
+  const previousSelectedGame = libraryState.games.find((game) => game.slug === libraryState.selectedSlug);
+  const previousSelectedQuests = libraryState.questsBySlug.get(libraryState.selectedSlug);
+  libraryState.games = games.filter((game) => game.owned || game.downloaded || game.installed);
   libraryState.questsBySlug = questsBySlug;
   const allCount = document.querySelector("[data-library-all-count]");
   const downloadedCount = document.querySelector("[data-library-downloaded-count]");
@@ -135,7 +140,7 @@ function renderLibraryGames(games, questsBySlug) {
   });
   const title = document.querySelector("[data-library-list-title]");
   const count = document.querySelector("[data-game-count]");
-  if (title) title.textContent = libraryState.filter === "all" ? "ALL GAMES" : "INSTALLED / DOWNLOADED";
+  if (title) title.textContent = libraryState.filter === "all" ? "ALL GAMES" : "INSTALLED";
   if (count) count.textContent = `${filteredGames.length} ${filteredGames.length === 1 ? "GAME" : "GAMES"}`;
 
   const container = document.querySelector("[data-games]");
@@ -146,7 +151,7 @@ function renderLibraryGames(games, questsBySlug) {
       container.innerHTML = `<div class="library-empty-state"><h2>No games found.</h2><p>Try another search or filter.</p><button class="library-clear-search" type="button" data-library-clear-search>Clear search and filters</button></div>`;
     }
   } else {
-    container.innerHTML = filteredGames.map((game, index) => `
+    const content = filteredGames.map((game, index) => `
       <button class="library-game-tile${game.downloaded ? " is-downloaded" : ""}" type="button" data-library-open="${escapeHtml(game.slug)}" aria-label="Open ${escapeHtml(game.name)}">
         <span class="library-cover-art game-art game-art-${index % 3}" aria-hidden="true">
           <span class="library-cover-index">${String(index + 1).padStart(2, "0")}</span>
@@ -157,6 +162,7 @@ function renderLibraryGames(games, questsBySlug) {
         <span class="library-tile-name">${escapeHtml(game.name)}</span>
         <span class="library-tile-status">${game.installed ? "Installed" : game.downloaded ? "Downloaded" : "Ready to download"}</span>
       </button>`).join("");
+    if (container.innerHTML !== content) container.innerHTML = content;
   }
 
   document.querySelectorAll("[data-library-filter]").forEach((button) => {
@@ -166,8 +172,15 @@ function renderLibraryGames(games, questsBySlug) {
   });
   if (libraryState.selectedSlug) {
     const selectedGame = libraryState.games.find((game) => game.slug === libraryState.selectedSlug);
-    if (selectedGame) renderLibraryDetail(selectedGame);
-    else closeLibraryDetail();
+    const selectedQuests = libraryState.questsBySlug.get(libraryState.selectedSlug);
+    if (!selectedGame) {
+      closeLibraryDetail();
+    } else if (
+      JSON.stringify(previousSelectedGame) !== JSON.stringify(selectedGame)
+      || JSON.stringify(previousSelectedQuests) !== JSON.stringify(selectedQuests)
+    ) {
+      renderLibraryDetail(selectedGame);
+    }
   }
 }
 
@@ -201,7 +214,7 @@ function renderLibraryDetail(game) {
       <div class="library-detail-status featured-game-status" data-detail-status>${status}</div>
     </section>
     <div class="library-detail-actions">
-      ${gameDownloadOptions(downloadGame, visitorPlatform, false).replace('class="game-download-area"', 'class="game-download-area library-detail-download"').replace("Download again for PC", "Download again")}
+      ${gameDownloadOptions(downloadGame, visitorPlatform, true).replace('class="game-download-area"', 'class="game-download-area library-detail-download"').replace("Download again for PC", "Download again")}
       <button class="library-action-button library-uninstall-button" type="button" data-uninstall-open><span aria-hidden="true">×</span> Uninstall</button>
       <button class="library-action-button" type="button" data-app-info aria-expanded="false"><span aria-hidden="true">i</span> App info</button>
     </div>
@@ -325,7 +338,8 @@ async function refreshQuestPanels() {
       if (!response.ok) return;
       const data = await response.json();
       if (request !== questPanelRequest) return;
-      panel.innerHTML = renderQuestPanel(data, Boolean(currentAccessToken));
+      const content = renderQuestPanel(data, Boolean(currentAccessToken));
+      if (panel.innerHTML !== content) panel.innerHTML = content;
     } catch {
       // The last successfully rendered progress remains visible while offline.
     }
@@ -347,7 +361,8 @@ async function refreshPlatformQuestBar() {
     if (!response.ok) throw new Error("Could not refresh platform quests.");
     const data = await response.json();
     if (request !== platformQuestRequest) return;
-    platformQuestBar.innerHTML = renderPlatformQuestBar(data);
+    const content = renderPlatformQuestBar(data);
+    if (platformQuestBar.innerHTML !== content) platformQuestBar.innerHTML = content;
     platformQuestBar.hidden = false;
   } catch {
     // Keep the last successful milestone state visible while offline.
@@ -361,15 +376,30 @@ async function refreshLiveQuestState() {
 
 window.addEventListener("onyx:auth-change", (event) => {
   currentAccessToken = event.detail?.accessToken || "";
+  if (!currentAccessToken) libraryState.questsBySlug.clear();
   void refreshLiveQuestState();
 });
+function refreshLiveStateOnFocus() {
+  const now = Date.now();
+  if (now - lastQuestRefreshAt >= 1000) {
+    lastQuestRefreshAt = now;
+    void refreshLiveQuestState();
+  }
+  if (now - lastGameRefreshAt >= 1000) {
+    lastGameRefreshAt = now;
+    void loadGames();
+  }
+}
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") void refreshLiveQuestState();
+  if (document.visibilityState === "visible") refreshLiveStateOnFocus();
 });
-window.addEventListener("focus", () => void refreshLiveQuestState());
+window.addEventListener("focus", refreshLiveStateOnFocus);
 window.setInterval(() => {
-  if (document.visibilityState === "visible") void refreshLiveQuestState();
-}, 10_000);
+  if (document.visibilityState === "visible") {
+    void refreshLiveQuestState();
+    void loadGames();
+  }
+}, 30_000);
 
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-platform-claim]");
@@ -408,10 +438,10 @@ function gameStatus(game) {
     : "";
 }
 
-function gameActionButton(game, includeStatus = true) {
+function gameActionButton(game, isLibraryDetail = false) {
   const action = game.owned ? "download" : "get";
-  const label = game.downloaded ? "Download again for PC" : game.owned ? "Download for PC" : "Get for PC";
-  return `<div class="game-actions"><button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label}: ${escapeHtml(game.name)}">${label} <span aria-hidden="true">↓</span></button>${includeStatus ? gameStatus(game) : ""}</div>`;
+  const label = game.downloaded && isLibraryDetail ? "Download again for PC" : "Download for PC";
+  return `<div class="game-actions"><button class="download-link" type="button" data-game-action="${action}" data-game-slug="${escapeHtml(game.slug)}" aria-label="${label}: ${escapeHtml(game.name)}">${label} <span aria-hidden="true">↓</span></button></div>`;
 }
 
 function detectVisitorPlatform() {
@@ -421,12 +451,12 @@ function detectVisitorPlatform() {
   return "unsupported";
 }
 
-function gameDownloadOptions(game, platform, includeStatus = true) {
-  if (game.downloaded && includeStatus) {
+function gameDownloadOptions(game, platform, isLibraryDetail = false) {
+  if (!isLibraryDetail && (game.downloaded || game.installed)) {
     return `<div class="game-download-area"><a class="download-link library-open-link" href="/library.html?game=${escapeHtml(encodeURIComponent(game.slug))}" aria-label="Open ${escapeHtml(game.name)} in your library">Library <span aria-hidden="true">↗</span></a></div>`;
   }
   if (platform === "windows") {
-    return `<div class="game-download-area">${gameActionButton(game, includeStatus)}</div>`;
+    return `<div class="game-download-area">${gameActionButton(game, isLibraryDetail)}</div>`;
   }
   if (platform === "android") {
     return '<div class="game-download-area"><button class="download-unavailable" type="button" disabled>Android (Coming soon)</button></div>';
@@ -491,17 +521,27 @@ document.addEventListener("click", async (event) => {
       method: isGet ? "POST" : "GET",
       headers: { Authorization: `Bearer ${currentAccessToken}` },
     });
-    const result = await response.json();
+    let result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not complete the game request.");
     if (isGet) {
       toastMessage("Game added to your library.");
-      await loadGames();
-      return;
+      const gameSlug = button.dataset.gameSlug;
+      const downloadResponse = await fetch(`/api/games/${encodeURIComponent(gameSlug)}/download`, {
+        headers: { Authorization: `Bearer ${currentAccessToken}` },
+      });
+      result = await downloadResponse.json();
+      if (!downloadResponse.ok) throw new Error(result.error || "Could not complete the game request.");
     }
     const statusContainer = button.closest(".game-card")?.querySelector(".featured-game-status")
       || button.closest(".game-actions");
-    button.innerHTML = 'Download again for PC <span aria-hidden="true">↓</span>';
-    button.setAttribute("aria-label", `Download again for PC: ${button.dataset.gameSlug}`);
+    if (button.closest(".home-library")) {
+      const gameSlug = button.dataset.gameSlug;
+      const gameName = button.closest(".game-card")?.querySelector(".featured-game-heading h2")?.textContent || gameSlug;
+      button.outerHTML = `<a class="download-link library-open-link" href="/library.html?game=${escapeHtml(encodeURIComponent(gameSlug))}" aria-label="Open ${escapeHtml(gameName)} in your library">Library <span aria-hidden="true">↗</span></a>`;
+    } else {
+      button.innerHTML = 'Download again for PC <span aria-hidden="true">↓</span>';
+      button.setAttribute("aria-label", `Download again for PC: ${button.dataset.gameSlug}`);
+    }
     if (statusContainer && !statusContainer.querySelector(".download-status-chip")) {
       const status = document.createElement("span");
       status.className = "download-status-chip";

@@ -2,6 +2,8 @@ import { CONTACT_EMAIL } from "./site-config.js?v=20261024";
 
 let walletAccessToken = readCachedAccessToken();
 let walletRequest = 0;
+let lastWalletRefreshAt = 0;
+let walletHasLoaded = false;
 
 document.querySelectorAll("[data-year]").forEach((element) => {
   element.textContent = new Date().getFullYear();
@@ -53,52 +55,48 @@ function setWalletAmount(value) {
   if (amount) amount.textContent = value;
 }
 
-function setWalletLoading() {
-  const amount = ensureWalletWidget()?.querySelector("[data-wallet-amount]");
-  if (!amount) return;
-  const spinner = document.createElement("span");
-  spinner.className = "wallet-loading-spinner";
-  spinner.setAttribute("role", "status");
-  spinner.setAttribute("aria-label", "Loading shard balance");
-  amount.replaceChildren(spinner);
-}
-
 async function refreshWallet() {
   const widget = ensureWalletWidget();
   if (!widget) return;
   if (!walletAccessToken) {
     widget.hidden = true;
+    walletHasLoaded = true;
     return;
   }
   widget.hidden = false;
-  setWalletLoading();
   const request = ++walletRequest;
   try {
     const response = await fetch("/api/wallet", { headers: { Authorization: `Bearer ${walletAccessToken}` } });
     if (request !== walletRequest) return;
     if (response.status === 401) {
       setWalletAmount("-");
+      walletHasLoaded = true;
       return;
     }
     if (!response.ok) {
       setWalletAmount("-");
+      walletHasLoaded = true;
       return;
     }
     const result = await response.json();
+    if (request !== walletRequest) return;
     setWalletAmount(Number(result.balance || 0).toLocaleString());
+    walletHasLoaded = true;
     widget.hidden = false;
   } catch {
-    if (request === walletRequest) setWalletAmount("-");
+    if (request === walletRequest) {
+      setWalletAmount("-");
+      walletHasLoaded = true;
+    }
   }
 }
 
 window.addEventListener("onyx:auth-change", (event) => {
+  const hadWalletAccessToken = Boolean(walletAccessToken);
   walletAccessToken = event.detail?.accessToken || "";
   const widget = ensureWalletWidget();
-  if (widget) {
-    widget.hidden = !walletAccessToken;
-    if (walletAccessToken) setWalletLoading();
-  }
+  if (widget) widget.hidden = !walletAccessToken;
+  if (walletHasLoaded && walletAccessToken && !hadWalletAccessToken) setWalletAmount("-");
   void refreshWallet();
 });
 window.addEventListener("onyx:wallet-updated", (event) => {
@@ -106,15 +104,22 @@ window.addEventListener("onyx:wallet-updated", (event) => {
   const widget = ensureWalletWidget();
   if (!widget) return;
   setWalletAmount(Number(event.detail?.balance || 0).toLocaleString());
+  walletHasLoaded = true;
   widget.hidden = !walletAccessToken;
 });
-window.addEventListener("focus", () => void refreshWallet());
+function refreshWalletOnFocus() {
+  const now = Date.now();
+  if (now - lastWalletRefreshAt < 1000) return;
+  lastWalletRefreshAt = now;
+  void refreshWallet();
+}
+window.addEventListener("focus", refreshWalletOnFocus);
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") void refreshWallet();
+  if (document.visibilityState === "visible") refreshWalletOnFocus();
 });
 window.setInterval(() => {
   if (document.visibilityState === "visible") void refreshWallet();
-}, 10_000);
+}, 30_000);
 void refreshWallet();
 
 const noticeDismissalKey = "onyx-cookie-notice-dismissed";
