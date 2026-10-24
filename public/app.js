@@ -75,6 +75,12 @@ async function loadGames(accessToken = currentAccessToken) {
       }
     }));
     if (requestSequence !== gamesLoadSequence) return;
+    const requestedGameSlug = new URLSearchParams(window.location.search).get("game");
+    if (requestedGameSlug && games.some((game) => (
+      game.slug === requestedGameSlug && (game.owned || game.downloaded)
+    ))) {
+      libraryState.selectedSlug = requestedGameSlug;
+    }
     const count = document.querySelector("[data-game-count]");
     if (count) count.textContent = `${String(games.length).padStart(2, "0")} TITLES`;
     containers.forEach((container) => {
@@ -93,10 +99,11 @@ async function loadGames(accessToken = currentAccessToken) {
         return `
         <article class="game-card${includeQuests ? "" : " featured-game-card"}">
           ${includeQuests ? `<div class="game-art game-art-${index % 3}" aria-hidden="true"><span class="game-number">${String(index + 1).padStart(2, "0")}</span><span class="game-eye"><i></i></span><span class="game-art-caption">ONYX ORIGINAL</span></div>` : ""}
+          ${includeQuests ? "" : `<div class="featured-game-status">${gameStatus(game)}</div>`}
           <div class="game-card-copy">
             ${includeQuests
               ? `<div><p class="eyebrow">${escapeHtml(game.slug.replaceAll("-", " "))}</p><h2>${escapeHtml(game.name)}</h2></div>`
-              : `<div class="featured-game-heading"><h2>${escapeHtml(game.name)}</h2><span class="featured-game-status">${gameStatus(game)}</span></div><p class="featured-game-description">${escapeHtml(homeDescription)}</p>`}
+              : `<div class="featured-game-heading"><h2>${escapeHtml(game.name)}</h2></div><p class="featured-game-description">${escapeHtml(homeDescription)}</p>`}
             ${!includeQuests && quests ? renderQuestPreview(quests) : ""}
             ${gameDownloadOptions(game, visitorPlatform, includeQuests)}
           </div>
@@ -280,16 +287,16 @@ function renderPlatformQuestBar(data) {
     const claim = claimable
       ? `<button class="platform-claim" type="button" data-platform-claim data-node-index="${nodeIndex}">Claim</button>`
       : "";
-    return `<div class="platform-milestone ${status}" style="--milestone-position:${required * 10}%" data-node-index="${nodeIndex}">
+    return `<div class="platform-milestone ${status}" style="--milestone-position:${required * 10 - 5}%" data-node-index="${nodeIndex}">
       <span class="milestone-reward">${rewardContent}</span>
       <div class="milestone-pin">${indicator}</div>
-      <span class="milestone-label">${required}</span>
       ${claim}
     </div>`;
   }).join("");
   const segments = Array.from({ length: 10 }, (_, index) => (
     `<span class="quest-segment${completedCount !== null && index < completedCount ? " is-complete" : ""}"></span>`
   )).join("");
+  const labels = Array.from({ length: 10 }, (_, index) => `<span>${index + 1}</span>`).join("");
 
   return `<div class="platform-quest-card">
     <div class="platform-quest-badge" aria-label="${completedCount === null ? "Loading quest total" : `${completedCount} quests completed`}"><span>${completedCount === null ? "..." : completedCount}</span></div>
@@ -298,6 +305,7 @@ function renderPlatformQuestBar(data) {
       <div class="platform-track" role="group" aria-label="${completedCount === null ? "Loading quests" : `${Math.min(completedCount, 10)} of 10 quests toward milestones`}">
         <div class="platform-track-inner">
           <div class="platform-segments">${segments}</div>
+          <div class="platform-segment-labels" aria-hidden="true">${labels}</div>
           ${milestones}
         </div>
       </div>
@@ -393,7 +401,7 @@ document.addEventListener("click", async (event) => {
 
 function gameStatus(game) {
   if (game.installed) {
-    return '<span class="download-status-chip" title="A device signed in with this account; the site cannot verify the game remains installed.">Installed</span><button class="download-state-link" type="button" data-uninstall-open>Uninstall</button>';
+    return '<span class="download-status-chip" title="A device signed in with this account; the site cannot verify the game remains installed.">Installed</span>';
   }
   return game.downloaded
     ? '<span class="download-status-chip" title="A download link was requested; the site cannot verify the file finished downloading.">Downloaded</span>'
@@ -414,6 +422,9 @@ function detectVisitorPlatform() {
 }
 
 function gameDownloadOptions(game, platform, includeStatus = true) {
+  if (game.downloaded && includeStatus) {
+    return `<div class="game-download-area"><a class="download-link library-open-link" href="/library.html?game=${escapeHtml(encodeURIComponent(game.slug))}" aria-label="Open ${escapeHtml(game.name)} in your library">Library <span aria-hidden="true">↗</span></a></div>`;
+  }
   if (platform === "windows") {
     return `<div class="game-download-area">${gameActionButton(game, includeStatus)}</div>`;
   }

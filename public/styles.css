@@ -107,10 +107,12 @@ h1, h2, p { margin-top: 0; }
 .game-card-copy { padding: 17px 17px 15px; }
 .game-card-copy .eyebrow { font-size: 9px; }
 .game-card-copy h2 { min-height: 24px; margin: 6px 0 17px; font-size: 16px; line-height: 1.35; }
-.featured-game-card .game-card-copy { padding: 27px 25px 25px; }
-.featured-game-heading { min-height: 29px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.featured-game-card .game-card-copy { padding: 48px 25px 25px; }
+.featured-game-card { position: relative; }
+.featured-game-heading { min-height: 0; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
 .featured-game-card .game-card-copy h2 { min-height: 0; margin: 0; font-size: 20px; line-height: 1.3; }
 .featured-game-status { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.featured-game-card > .featured-game-status { position: absolute; z-index: 2; top: 12px; right: 12px; }
 .featured-game-description { margin: 0 0 23px; overflow: hidden; color: #a89bb6; font-size: 12px; line-height: 1.6; text-overflow: ellipsis; white-space: nowrap; }
 .quest-preview { margin: 0 0 23px; gap: 13px; }
 .quest-preview .quest-row { grid-template-columns: 15px minmax(0, 1fr); }
@@ -121,9 +123,7 @@ h1, h2, p { margin-top: 0; }
 .download-link span { color: var(--coral); font-size: 13px; }
 .download-unavailable { color: #969990; }
 .game-actions { min-height: 31px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; }
-.download-status-chip { padding: 4px 7px; border: 1px solid #725b8d; border-radius: 10px; color: #d6c2ee; font: 8px var(--mono); line-height: 1; }
-.download-state-link { padding: 0; border: 0; color: #c5a0f0; background: transparent; font: 9px var(--mono); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.download-state-link:hover { color: #ead9ff; }
+.download-status-chip { padding: 4px 7px; border: 1px solid #725b8d; border-radius: 10px; color: #d6c2ee; font: 12px var(--mono); line-height: 1; }
 .loading-line, .empty-state { padding: 28px 0; color: var(--muted); font-size: 12px; }
 .loading-dots { color: var(--coral); animation: blink 1s steps(2, start) infinite; }
 .game-quests { padding: 0 17px 17px; }
@@ -151,28 +151,26 @@ h1, h2, p { margin-top: 0; }
 .platform-quest-heading > span { color: #7e718d; font: 8px var(--mono); letter-spacing: .08em; }
 .platform-quest-heading .eyebrow { color: #dfcaff; font-size: 9px; }
 .platform-track { position: relative; height: 137px; margin: 9px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-color: #76558f #201a28; scrollbar-width: thin; touch-action: pan-x; }
-.platform-track-inner { position: relative; width: 100%; min-width: 100%; height: 129px; }
-.platform-segments { position: absolute; top: 56px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+.platform-track-inner { position: relative; width: 100%; min-width: 100%; height: 132px; }
+.platform-segments { position: absolute; top: 52px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
 .platform-segments .quest-segment { height: 16px; border-radius: 3px; }
 .platform-milestone { position: absolute; top: 0; left: var(--milestone-position); min-width: 52px; display: grid; justify-items: center; align-content: start; row-gap: 3px; transform: translateX(-50%); }
-.platform-milestone:last-child { transform: translateX(-100%); }
 .milestone-pin { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #5a4c68; border-radius: 50%; background: #1a1422; }
 .milestone-pin img { width: 18px; height: 18px; filter: grayscale(1) opacity(.4); }
 .milestone-reward { min-height: 19px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: #b0a3bb; font: 600 12px var(--mono); white-space: nowrap; }
 .milestone-reward img { width: 16px; height: 16px; filter: grayscale(1) opacity(.55); }
-.milestone-label { color: #f1eaff; font: 700 16px var(--sans); line-height: 1.2; text-shadow: 0 1px 5px #000; }
+.platform-segment-labels { position: absolute; top: 76px; left: 0; width: 100%; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; color: #f1eaff; text-align: center; font: 700 16px/1.2 var(--sans); text-shadow: 0 1px 5px #000; }
 .platform-milestone.is-claimable .milestone-pin { border-color: #d3aaff; background: #57327d; box-shadow: 0 0 15px #b87aff9c; animation: milestone-glow 1.8s ease-in-out infinite; }
 .platform-milestone.is-claimable .milestone-pin img { filter: drop-shadow(0 0 4px #e0c3ff); }
-.platform-milestone.is-claimable .milestone-reward,
-.platform-milestone.is-claimable .milestone-label { color: #eadbff; }
+.platform-milestone.is-claimable .milestone-reward { color: #eadbff; }
 .platform-milestone.is-claimable .milestone-reward img { filter: drop-shadow(0 0 4px #e0c3ff); }
 .platform-milestone.is-claimed .milestone-pin { border-color: #b88be8; background: #7044a0; box-shadow: 0 0 11px #a15bff5c; }
 .milestone-check { color: #fff; font-size: 15px; line-height: 1; }
 .platform-milestone.is-claimed .milestone-reward { color: #d9c1f2; }
-.platform-claim { min-height: 23px; margin-top: 1px; padding: 0 8px; border: 1px solid #c69aff; border-radius: 3px; background: #7948b4; color: white; cursor: pointer; font-size: 9px; font-weight: 700; }
+.platform-claim { position: absolute; top: 102px; left: 50%; min-height: 25px; padding: 0 8px; transform: translateX(-50%); border: 1px solid #c69aff; border-radius: 3px; background: #7948b4; color: white; cursor: pointer; font-size: 12px; font-weight: 700; }
 .platform-claim:hover { background: #925bd3; box-shadow: 0 0 12px #a15bff8a; }
 .platform-claim:disabled { cursor: wait; opacity: .65; }
-.platform-quest-progress { margin: 1px 0 0; color: #b5a6c5; font-size: 10px; }
+.platform-quest-progress { margin: 1px 0 0; color: #b5a6c5; font-size: 14px; }
 .platform-quest-section.is-claiming { animation: platform-claim-burst 520ms cubic-bezier(.2,.8,.25,1); }
 .uninstall-dialog { width: min(calc(100vw - 32px), 340px); padding: 0; overflow: visible; border: 1px solid #a881ff66; border-radius: 6px; background: #17111f; color: var(--ink); box-shadow: 0 16px 60px #000b, 0 0 26px #a15bff25; }
 .uninstall-dialog::backdrop { background: #050309b8; }
@@ -182,33 +180,39 @@ h1, h2, p { margin-top: 0; }
 .uninstall-dialog-close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; background: transparent; color: #c5bdcf; font-size: 22px; cursor: pointer; }
 @keyframes milestone-glow { 50% { box-shadow: 0 0 21px #c28affc7; } }
 @keyframes platform-claim-burst { 35% { transform: scale(1.012); filter: brightness(1.35); } 100% { transform: scale(1); filter: brightness(1); } }
-.library-main { padding: 59px 7.1% 70px; }
+.library-main { padding: 52px 7.1% 70px; }
 .library-main .platform-quest-section { margin-inline: 0; }
+.library-main .eyebrow { font-size: 12px; }
+.library-main .platform-quest-heading { flex-wrap: wrap; gap: 6px 12px; }
+.library-main .platform-quest-heading > span { font-size: 12px; }
+.library-main .platform-quest-progress { font-size: 14px; }
+.library-main .platform-claim { font-size: 12px; }
 .library-intro { min-height: 280px; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
 .library-intro h1 { margin: 19px 0 32px; font-size: 71px; }
-.library-description { width: 300px; margin: 48px 5% 0 0; color: #62665f; font-size: 13px; line-height: 1.9; }
+.library-description { width: 300px; margin: 48px 5% 0 0; color: #b8adca; font-size: 14px; line-height: 1.7; }
 .library-list { border-top: 1px solid var(--ink); }
 .library-list-head { display: flex; justify-content: space-between; padding: 13px 0; color: var(--muted); }
 .game-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .library-shell { display: grid; grid-template-columns: minmax(190px, 230px) minmax(0, 1fr); align-items: start; gap: clamp(24px, 4vw, 54px); }
-.library-sidebar { position: sticky; top: 24px; min-width: 0; padding: 20px 17px 19px 0; border-right: 1px solid #c6a8ff20; }
-.library-sidebar > .eyebrow { margin: 0 0 19px 10px; color: #c8b8dc; }
-.library-search { position: relative; display: block; margin-bottom: 20px; }
+.library-sidebar { position: sticky; top: 24px; min-width: 0; padding: 16px 17px 19px 0; border-right: 1px solid #c6a8ff20; }
+.library-sidebar > .eyebrow { margin: 0 0 14px 10px; color: #c8b8dc; }
+.library-search { position: relative; display: block; margin-bottom: 13px; }
 .library-search svg { position: absolute; top: 50%; left: 13px; width: 17px; height: 17px; fill: none; stroke: #a898b9; stroke-linecap: round; stroke-width: 1.7; transform: translateY(-50%); pointer-events: none; }
-.library-search input { width: 100%; min-height: 43px; padding: 0 12px 0 39px; border: 1px solid #544264; border-radius: 4px; outline: 0; background: #120e19; color: var(--ink); font: 11px var(--sans); }
+.library-search input { width: 100%; min-height: 46px; padding: 0 12px 0 39px; border: 1px solid #544264; border-radius: 4px; outline: 0; background: #120e19; color: var(--ink); font: 14px var(--sans); }
 .library-search input::placeholder { color: #9588a4; }
 .library-search input:focus { border-color: #b48be7; box-shadow: 0 0 0 3px #a15bff20; }
 .library-filters { display: grid; gap: 5px; }
-.library-filter { min-height: 43px; padding: 0 11px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #b5a9c3; cursor: pointer; text-align: left; font-size: 11px; transition: background 150ms ease, border-color 150ms ease, color 150ms ease; }
-.library-filter span:last-child { min-width: 22px; padding: 3px 5px; border: 1px solid #59466e; border-radius: 12px; color: #c4b2d6; text-align: center; font: 9px var(--mono); }
+.library-filter { min-height: 46px; padding: 0 11px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #b5a9c3; cursor: pointer; text-align: left; font-size: 14px; transition: background 150ms ease, border-color 150ms ease, color 150ms ease; }
+.library-filter span:last-child { min-width: 22px; padding: 3px 5px; border: 1px solid #59466e; border-radius: 12px; color: #c4b2d6; text-align: center; font: 12px var(--mono); }
 .library-filter:hover, .library-filter.is-active { border-color: #704e91; background: linear-gradient(100deg, #322141, #1a1423); color: #f1e6ff; }
 .library-filter.is-active { box-shadow: inset 2px 0 #bc8aff; }
-.library-discover-link { min-height: 42px; margin: 23px 0 0 10px; display: inline-flex; align-items: center; gap: 8px; color: #c3a5e9; font: 10px var(--mono); }
+.library-discover-link { min-height: 42px; margin: 14px 0 0 10px; display: inline-flex; align-items: center; gap: 8px; color: #c3a5e9; font: 12px var(--mono); }
 .library-discover-link:hover { color: #f1e6ff; }
 .library-content { min-width: 0; }
-.library-content .library-intro { min-height: 190px; }
-.library-content .library-intro h1 { margin-bottom: 20px; font-size: clamp(48px, 5vw, 68px); }
-.library-content .library-description { margin-top: 32px; }
+.library-content .library-intro { min-height: 180px; gap: clamp(18px, 3vw, 36px); }
+.library-content .library-intro h1 { margin-bottom: 18px; font-size: clamp(48px, 5vw, 68px); }
+.library-content .library-description { margin: 0; }
+.library-main .library-list-head { font-size: 12px; }
 .library-content .library-list { border-top-color: #c6a8ff2b; }
 .library-game-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .library-game-tile { min-width: 0; padding: 0; overflow: hidden; border: 1px solid #c6a8ff23; border-radius: 5px; background: #110d18; color: var(--ink); cursor: pointer; text-align: left; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
@@ -223,11 +227,11 @@ h1, h2, p { margin-top: 0; }
 .library-cover-caption { right: 12px; bottom: 12px; font-size: 7px; letter-spacing: .1em; }
 .library-cover-eye { z-index: 1; width: 47%; max-width: 112px; filter: drop-shadow(0 0 17px #c88cff); }
 .library-cover-eye i { box-shadow: 0 0 22px #c991ff; }
-.library-owned-badge { position: absolute; z-index: 3; top: 11px; right: 10px; padding: 6px 8px; border: 1px solid #e3cbff99; border-radius: 3px; background: #21142ee8; color: #f0e2ff; box-shadow: 0 0 17px #bc85ff59; font: 8px var(--mono); letter-spacing: .04em; }
+.library-owned-badge { position: absolute; z-index: 3; top: 11px; right: 10px; padding: 6px 8px; border: 1px solid #e3cbff99; border-radius: 3px; background: #21142ee8; color: #f0e2ff; box-shadow: 0 0 17px #bc85ff59; font: 12px var(--mono); letter-spacing: .04em; }
 .library-game-tile.is-downloaded { border-color: #a881ff6b; box-shadow: 0 0 22px #a15bff16; }
 .library-game-tile.is-downloaded .library-cover-art { border-bottom-color: #c69aff6b; background-color: #3c2454; }
-.library-tile-name { min-height: 47px; padding: 13px 13px 2px; display: block; color: #f1eaff; font-size: 13px; font-weight: 600; line-height: 1.4; }
-.library-tile-status { padding: 0 13px 13px; display: block; color: #a99ab8; font: 9px var(--mono); }
+.library-tile-name { min-height: 47px; padding: 13px 13px 2px; display: block; color: #f1eaff; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.library-tile-status { padding: 0 13px 13px; display: block; color: #a99ab8; font: 12px var(--mono); }
 .library-game-tile.is-downloaded .library-tile-status { color: #cfa9ff; }
 .library-skeleton { min-width: 0; overflow: hidden; border: 1px solid #c6a8ff20; border-radius: 5px; background: #130f1b; }
 .library-skeleton > span { aspect-ratio: .76; display: block; background: linear-gradient(110deg, #171120 8%, #251b30 18%, #171120 33%); background-size: 200% 100%; animation: library-shimmer 1.5s linear infinite; }
@@ -235,12 +239,12 @@ h1, h2, p { margin-top: 0; }
 .library-skeleton > b { width: 42%; height: 8px; margin-top: 0; background: #241c2d; }
 .library-empty-state { grid-column: 1 / -1; min-height: 290px; padding: 38px 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #80649d; border-radius: 6px; background: radial-gradient(ellipse at 50% 0, #59377620, transparent 70%), #100d17; text-align: center; }
 .library-empty-state h2 { margin: 13px 0 8px; font-size: 21px; font-weight: 500; }
-.library-empty-state p { max-width: 380px; margin: 0 0 19px; color: #b2a5c0; font-size: 12px; line-height: 1.65; }
+.library-empty-state p { max-width: 380px; margin: 0 0 19px; color: #b2a5c0; font-size: 14px; line-height: 1.65; }
 .library-empty-mark { color: #c7a3f5; font-size: 42px; line-height: 1; }
 .library-empty-state .button { min-height: 43px; }
-.library-clear-search { padding: 8px 0; border: 0; background: transparent; color: #d5b8ff; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font: 10px var(--mono); }
+.library-clear-search { padding: 8px 0; border: 0; background: transparent; color: #d5b8ff; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font: 12px var(--mono); }
 .library-detail { min-width: 0; }
-.library-back-button { min-height: 44px; margin: 1px 0 17px; padding: 0 2px; display: inline-flex; align-items: center; gap: 10px; border: 0; background: transparent; color: #c4b2d6; cursor: pointer; font-size: 11px; }
+.library-back-button { min-height: 44px; margin: 1px 0 17px; padding: 0 2px; display: inline-flex; align-items: center; gap: 10px; border: 0; background: transparent; color: #c4b2d6; cursor: pointer; font-size: 14px; }
 .library-back-button:hover { color: #f1e6ff; }
 .library-detail-banner { position: relative; min-height: 310px; padding: 38px clamp(22px, 5vw, 52px); overflow: hidden; display: flex; align-items: flex-end; border: 1px solid #c6a8ff47; border-radius: 6px; background: radial-gradient(ellipse at 73% 31%, #8b55b982 0, transparent 31%), linear-gradient(115deg, #301d43, #17111f 72%); box-shadow: inset 0 0 60px #b881ff17, 0 15px 38px #0005; }
 .library-detail-banner::before { position: absolute; inset: 0; background: linear-gradient(90deg, #100c17e8 0, #100c174f 55%, #100c1740), radial-gradient(circle at 77% 40%, transparent 0 15%, #d5b2ff21 15.2% 15.5%, transparent 15.8% 24%, #d5b2ff16 24.2% 24.5%, transparent 24.8%); content: ""; }
@@ -254,7 +258,7 @@ h1, h2, p { margin-top: 0; }
 .library-detail-art-eye i { box-shadow: 0 0 28px #c18cff; }
 .library-detail-actions { margin: 16px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .library-detail-download .game-actions { display: contents; }
-.library-detail-actions .download-link, .library-detail-actions .download-unavailable, .library-action-button { min-height: 43px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #8e69bd; border-radius: 4px; background: #261a36; color: #f1eaff; cursor: pointer; font: 10px var(--mono); transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
+.library-detail-actions .download-link, .library-detail-actions .download-unavailable, .library-action-button { min-height: 43px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #8e69bd; border-radius: 4px; background: #261a36; color: #f1eaff; cursor: pointer; font: 12px var(--mono); transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
 .library-detail-actions .download-link { border-color: #d1b2ff; background: linear-gradient(110deg, #70439e, #4e3370); box-shadow: 0 0 15px #a15bff24; }
 .library-detail-actions .download-link:hover, .library-action-button:hover { border-color: #e3cdff; background: #3d2854; box-shadow: 0 0 14px #a15bff36; }
 .library-detail-actions .download-unavailable { color: #b2a5c0; cursor: not-allowed; }
@@ -263,17 +267,21 @@ h1, h2, p { margin-top: 0; }
 .library-app-info h2 { margin: 0 0 15px; font-size: 15px; font-weight: 600; }
 .library-app-info dl { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; }
 .library-app-info dl > div { min-width: 0; }
-.library-app-info dt { margin-bottom: 6px; color: #9f91ad; font: 9px var(--mono); }
-.library-app-info dd { margin: 0; color: #e5d9f1; font-size: 11px; overflow-wrap: anywhere; }
+.library-app-info dt { margin-bottom: 6px; color: #9f91ad; font: 12px var(--mono); }
+.library-app-info dd { margin: 0; color: #e5d9f1; font-size: 14px; overflow-wrap: anywhere; }
 .library-detail-quests { margin-top: 34px; padding-top: 23px; border-top: 1px solid #c6a8ff2b; }
 .library-detail-section-heading { margin-bottom: 15px; }
 .library-detail-section-heading h2 { margin: 7px 0 0; font-size: 24px; font-weight: 500; }
 .library-detail-quests .game-quests { padding: 17px 19px; border: 1px solid #c6a8ff2b; border-radius: 5px; background: linear-gradient(145deg, #191423, #100d17); }
-.library-quest-loading { min-height: 100px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #b4a5c2; font-size: 11px; }
+.library-quest-loading { min-height: 100px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #b4a5c2; font-size: 14px; }
+.library-main .quest-count, .library-main .quest-row strong { font-size: 14px; }
+.library-main .quest-row small, .library-main .quest-signin-prompt { font-size: 12px; }
 @keyframes library-shimmer { to { background-position-x: -200%; } }
 .library-signin { margin-top: 61px; padding: 26px 0 0; display: flex; justify-content: space-between; align-items: center; gap: 25px; border-top: 1px solid var(--line); }
 .library-signin h2 { margin: 8px 0 0; font-size: 21px; }
 .signin-action { display: flex; align-items: center; gap: 18px; color: var(--muted); font-size: 10px; }
+.library-main .signin-action { font-size: 14px; }
+.library-main .legal-consent { font-size: 12px; }
 .site-footer { min-height: 73px; padding: 0 7.1%; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 .footer-mark { color: var(--ink); font-size: 11px; }
 .footer-year { font-size: 9px; }
@@ -299,15 +307,15 @@ h1, h2, p { margin-top: 0; }
   .game-art { height: 175px; }
   .library-main { padding: 43px 5% 52px; }
   .library-shell { grid-template-columns: minmax(0, 1fr); gap: 15px; }
-  .library-sidebar { position: static; padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #c6a8ff2b; }
+  .library-sidebar { position: static; padding: 0 0 16px; border-right: 0; border-bottom: 1px solid #c6a8ff2b; }
   .library-sidebar > .eyebrow { margin-left: 0; margin-bottom: 10px; }
-  .library-search { margin-bottom: 9px; }
-  .library-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
-  .library-filter { min-width: max-content; min-height: 40px; }
-  .library-discover-link { min-height: 34px; margin: 4px 0 0 8px; }
-  .library-content .library-intro { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 8px 0 20px; }
-  .library-content .library-intro h1 { margin: 12px 0 12px; font-size: clamp(43px, 12vw, 58px); }
-  .library-content .library-description { width: auto; max-width: 360px; margin: 0 0 8px; }
+  .library-search { margin-bottom: 12px; }
+  .library-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+  .library-filter { min-width: max-content; min-height: 44px; }
+  .library-discover-link { min-height: 40px; margin: 6px 0 0 8px; }
+  .library-content .library-intro { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 12px 0 22px; }
+  .library-content .library-intro h1 { margin: 12px 0 0; font-size: clamp(43px, 12vw, 58px); }
+  .library-content .library-description { width: auto; max-width: 360px; margin: 0; }
   .library-game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .library-cover-art { min-height: 0; }
   .library-detail-banner { min-height: 260px; padding: 25px 20px; }
@@ -548,22 +556,22 @@ img, picture, canvas, video { max-width: 100%; }
   .milestone-pin { width: 25px; height: 25px; }
   .milestone-pin img { width: 16px; height: 16px; }
   .milestone-reward { font-size: 12px; }
-  .milestone-label { font-size: 16px; }
-  .platform-claim { min-height: 23px; padding-inline: 8px; font-size: 9px; }
-  .platform-quest-progress { font-size: 10px; }
+  .platform-segment-labels { top: 76px; font-size: 16px; }
+  .platform-claim { min-height: 25px; padding-inline: 8px; font-size: 12px; }
+  .platform-quest-progress { font-size: 14px; }
 }
 
 @media (max-width: 420px) {
   .library-sidebar { padding-bottom: 10px; }
-  .library-filter { padding-inline: 8px; gap: 7px; font-size: 10px; }
+  .library-filter { padding-inline: 8px; gap: 7px; font-size: 14px; }
   .library-game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .library-tile-name { min-height: 54px; padding: 11px 10px 3px; font-size: 12px; }
-  .library-tile-status { padding: 0 10px 11px; font-size: 8px; }
-  .library-owned-badge { top: 8px; right: 7px; padding: 5px 6px; font-size: 7px; }
+  .library-tile-name { min-height: 54px; padding: 11px 10px 3px; font-size: 14px; }
+  .library-tile-status { padding: 0 10px 11px; font-size: 12px; }
+  .library-owned-badge { top: 8px; right: 7px; padding: 5px 6px; font-size: 12px; }
   .library-detail-banner { min-height: 240px; }
   .library-detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .library-detail-download { grid-column: 1 / -1; }
-  .library-detail-actions .download-link, .library-detail-actions .download-unavailable, .library-action-button { width: 100%; min-width: 0; padding-inline: 8px; font-size: 9px; }
+  .library-detail-actions .download-link, .library-detail-actions .download-unavailable, .library-action-button { width: 100%; min-width: 0; padding-inline: 8px; font-size: 12px; }
   .library-app-info dl { gap: 14px 9px; }
 }
 
